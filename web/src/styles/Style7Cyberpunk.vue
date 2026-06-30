@@ -221,14 +221,14 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
       </section>
 
       <!-- ④ 规则 -->
-      <section v-if="lotteryOn || teaOn" class="mb-12">
+      <section v-if="config.lotteryModuleEnabled !== false || config.teaModuleEnabled !== false" class="mb-12">
         <h2 class="font-orbitron text-2xl font-black uppercase italic tracking-wide text-cyber-cyan cyber-text-cyan sm:text-4xl">▰ 规则 // RULES.md</h2>
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
-          <div v-if="lotteryOn" class="cyber-clip border border-cyber-pink/50 bg-cyber-panel/70 p-6 backdrop-blur">
+          <div v-if="config.lotteryModuleEnabled !== false" class="cyber-clip border border-cyber-pink/50 bg-cyber-panel/70 p-6 backdrop-blur">
             <p class="font-orbitron text-sm font-black uppercase tracking-widest text-cyber-pink">▹ 抽奖规则</p>
             <p class="mt-3 whitespace-pre-line font-mono text-sm leading-relaxed text-cyber-fg/80">{{ config.rulesLottery }}</p>
           </div>
-          <div v-if="teaOn" class="cyber-clip border border-cyber-cyan/50 bg-cyber-panel/70 p-6 backdrop-blur">
+          <div v-if="config.teaModuleEnabled !== false" class="cyber-clip border border-cyber-cyan/50 bg-cyber-panel/70 p-6 backdrop-blur">
             <p class="font-orbitron text-sm font-black uppercase tracking-widest text-cyber-cyan">▹ 下午茶评分规则</p>
             <p class="mt-3 whitespace-pre-line font-mono text-sm leading-relaxed text-cyber-fg/80">{{ config.rulesTea }}</p>
           </div>

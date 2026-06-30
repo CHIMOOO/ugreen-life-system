@@ -255,17 +255,17 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
       </section>
 
       <!-- ④ 规则 -->
-      <section v-if="lotteryOn || teaOn" class="mt-12">
+      <section v-if="config.lotteryModuleEnabled !== false || config.teaModuleEnabled !== false" class="mt-12">
         <div class="flex items-center gap-4 border-b-4 border-bau-ink pb-4">
           <span class="h-8 w-8 rotate-45 border-2 border-bau-ink bg-bau-yellow"></span>
           <h2 class="text-3xl font-black uppercase tracking-tight sm:text-4xl">规则</h2>
         </div>
         <div class="mt-8 grid gap-6 sm:grid-cols-2">
-          <div v-if="lotteryOn" class="border-4 border-bau-ink bg-white p-6 shadow-bau-md">
+          <div v-if="config.lotteryModuleEnabled !== false" class="border-4 border-bau-ink bg-white p-6 shadow-bau-md">
             <p class="inline-block border-2 border-bau-ink bg-bau-red px-3 py-1 text-sm font-black uppercase tracking-widest text-white">抽奖规则</p>
             <p class="mt-4 whitespace-pre-line font-medium leading-relaxed text-bau-ink/80">{{ config.rulesLottery }}</p>
           </div>
-          <div v-if="teaOn" class="border-4 border-bau-ink bg-white p-6 shadow-bau-md">
+          <div v-if="config.teaModuleEnabled !== false" class="border-4 border-bau-ink bg-white p-6 shadow-bau-md">
             <p class="inline-block border-2 border-bau-ink bg-bau-blue px-3 py-1 text-sm font-black uppercase tracking-widest text-white">下午茶评分规则</p>
             <p class="mt-4 whitespace-pre-line font-medium leading-relaxed text-bau-ink/80">{{ config.rulesTea }}</p>
           </div>

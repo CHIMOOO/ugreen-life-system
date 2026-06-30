@@ -239,15 +239,15 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
       </section>
 
       <!-- ④ 规则 -->
-      <section v-if="lotteryOn || teaOn" class="mb-12">
+      <section v-if="config.lotteryModuleEnabled !== false || config.teaModuleEnabled !== false" class="mb-12">
         <h2 class="font-righteous text-3xl uppercase tracking-wide text-retro-orange sm:text-4xl">📜 规则</h2>
         <div class="mt-2 h-2 w-28 rounded-full retro-stripes"></div>
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
-          <div v-if="lotteryOn" class="rounded-[24px] border-2 border-dashed border-retro-orange bg-retro-panel p-6 retro-shadow">
+          <div v-if="config.lotteryModuleEnabled !== false" class="rounded-[24px] border-2 border-dashed border-retro-orange bg-retro-panel p-6 retro-shadow">
             <p class="font-righteous text-lg uppercase tracking-wide text-retro-orange">◆ 抽奖规则</p>
             <p class="mt-2 whitespace-pre-line font-poppins leading-relaxed text-retro-ink/80">{{ config.rulesLottery }}</p>
           </div>
-          <div v-if="teaOn" class="rounded-[24px] border-2 border-dashed border-retro-teal bg-retro-panel p-6 retro-shadow">
+          <div v-if="config.teaModuleEnabled !== false" class="rounded-[24px] border-2 border-dashed border-retro-teal bg-retro-panel p-6 retro-shadow">
             <p class="font-righteous text-lg uppercase tracking-wide text-retro-teal">● 下午茶评分规则</p>
             <p class="mt-2 whitespace-pre-line font-poppins leading-relaxed text-retro-ink/80">{{ config.rulesTea }}</p>
           </div>

@@ -242,14 +242,14 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
       </section>
 
       <!-- ④ 规则 -->
-      <section v-if="lotteryOn || teaOn" class="mb-12">
+      <section v-if="config.lotteryModuleEnabled !== false || config.teaModuleEnabled !== false" class="mb-12">
         <h2 class="font-kalam text-3xl font-bold text-sketch-ink sm:text-4xl">📜 规则</h2>
         <div class="mt-6 grid gap-6 sm:grid-cols-2">
-          <div v-if="lotteryOn" class="border-[3px] border-dashed border-sketch-ink bg-white p-6 shadow-sketch-soft -rotate-1 wobbly-md">
+          <div v-if="config.lotteryModuleEnabled !== false" class="border-[3px] border-dashed border-sketch-ink bg-white p-6 shadow-sketch-soft -rotate-1 wobbly-md">
             <p class="inline-block bg-sketch-postit px-3 py-1 font-kalam text-lg font-bold text-sketch-red wobbly-pill">抽奖规则</p>
             <p class="mt-3 whitespace-pre-line font-patrick text-base leading-relaxed text-sketch-ink/80">{{ config.rulesLottery }}</p>
           </div>
-          <div v-if="teaOn" class="border-[3px] border-dashed border-sketch-ink bg-white p-6 shadow-sketch-soft rotate-1 wobbly-md">
+          <div v-if="config.teaModuleEnabled !== false" class="border-[3px] border-dashed border-sketch-ink bg-white p-6 shadow-sketch-soft rotate-1 wobbly-md">
             <p class="inline-block bg-sketch-postit px-3 py-1 font-kalam text-lg font-bold text-sketch-blue wobbly-pill">下午茶评分规则</p>
             <p class="mt-3 whitespace-pre-line font-patrick text-base leading-relaxed text-sketch-ink/80">{{ config.rulesTea }}</p>
           </div>

@@ -255,18 +255,18 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
       </section>
 
       <!-- ④ 规则 · 书页正文 -->
-      <section v-if="lotteryOn || teaOn" class="mb-12">
+      <section v-if="config.lotteryModuleEnabled !== false || config.teaModuleEnabled !== false" class="mb-12">
         <h2 class="font-playfair text-3xl font-bold italic text-aca-ink sm:text-4xl">
           <span class="mr-2 not-italic text-aca-gold">§</span>规则
         </h2>
         <div class="aca-rule mt-3"></div>
         <div class="aca-frame mt-6 bg-aca-panel p-7 sm:p-9">
-          <template v-if="lotteryOn">
+          <template v-if="config.lotteryModuleEnabled !== false">
             <p class="font-playfair text-xl font-bold italic text-aca-burgundy">抽奖规则</p>
             <p class="aca-dropcap mt-3 whitespace-pre-line leading-relaxed text-aca-ink">{{ config.rulesLottery }}</p>
           </template>
           <div v-if="lotteryOn && teaOn" class="aca-rule my-7"></div>
-          <template v-if="teaOn">
+          <template v-if="config.teaModuleEnabled !== false">
             <p class="font-playfair text-xl font-bold italic text-aca-forest">下午茶评分规则</p>
             <p class="aca-dropcap mt-3 whitespace-pre-line leading-relaxed text-aca-ink">{{ config.rulesTea }}</p>
           </template>

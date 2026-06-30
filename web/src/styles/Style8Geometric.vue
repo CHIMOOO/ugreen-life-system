@@ -260,17 +260,17 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
       </section>
 
       <!-- ④ 规则 -->
-      <section v-if="lotteryOn || teaOn" class="mb-12">
+      <section v-if="config.lotteryModuleEnabled !== false || config.teaModuleEnabled !== false" class="mb-12">
         <h2 class="font-fredoka text-3xl font-bold sm:text-4xl">
           <span class="inline-block -rotate-1 rounded-2xl bg-geo-yellow px-4 py-1">📜 规则</span>
         </h2>
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
-          <div v-if="lotteryOn" class="relative rounded-[28px] border-[3px] border-geo-ink bg-white p-6 geo-shadow">
+          <div v-if="config.lotteryModuleEnabled !== false" class="relative rounded-[28px] border-[3px] border-geo-ink bg-white p-6 geo-shadow">
             <span class="absolute -left-3 -top-3 grid h-10 w-10 place-items-center rounded-full border-[3px] border-geo-ink bg-geo-coral text-lg">🎲</span>
             <p class="font-fredoka text-lg font-bold text-geo-coral">抽奖规则</p>
             <p class="mt-2 whitespace-pre-line leading-relaxed text-geo-ink/70">{{ config.rulesLottery }}</p>
           </div>
-          <div v-if="teaOn" class="relative rounded-[28px] border-[3px] border-geo-ink bg-white p-6 geo-shadow">
+          <div v-if="config.teaModuleEnabled !== false" class="relative rounded-[28px] border-[3px] border-geo-ink bg-white p-6 geo-shadow">
             <span class="absolute -left-3 -top-3 grid h-10 w-10 place-items-center rounded-full border-[3px] border-geo-ink bg-geo-teal text-lg">🍵</span>
             <p class="font-fredoka text-lg font-bold text-geo-teal">下午茶评分规则</p>
             <p class="mt-2 whitespace-pre-line leading-relaxed text-geo-ink/70">{{ config.rulesTea }}</p>

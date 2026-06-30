@@ -242,15 +242,15 @@ function asciiBar(rate) {
       </section>
 
       <!-- ④ 规则 -->
-      <section v-if="lotteryOn || teaOn" class="mt-10">
+      <section v-if="config.lotteryModuleEnabled !== false || config.teaModuleEnabled !== false" class="mt-10">
         <div class="term-box bg-term-panel p-5 sm:p-7">
           <h2 class="text-xl font-bold uppercase text-term-green term-glow sm:text-2xl">[ 规则 ] // README.md</h2>
           <div class="mt-5 grid gap-5 sm:grid-cols-2">
-            <div v-if="lotteryOn" class="border border-term-line bg-black/40 p-4">
+            <div v-if="config.lotteryModuleEnabled !== false" class="border border-term-line bg-black/40 p-4">
               <p class="text-sm font-bold uppercase text-term-amber"># 抽奖规则</p>
               <p class="mt-2 whitespace-pre-line text-sm leading-relaxed text-term-fg/85">{{ config.rulesLottery }}</p>
             </div>
-            <div v-if="teaOn" class="border border-term-line bg-black/40 p-4">
+            <div v-if="config.teaModuleEnabled !== false" class="border border-term-line bg-black/40 p-4">
               <p class="text-sm font-bold uppercase text-term-amber"># 下午茶评分规则</p>
               <p class="mt-2 whitespace-pre-line text-sm leading-relaxed text-term-fg/85">{{ config.rulesTea }}</p>
             </div>

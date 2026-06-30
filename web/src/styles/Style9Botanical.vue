@@ -249,16 +249,16 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
       </section>
 
       <!-- ④ 规则 -->
-      <section v-if="lotteryOn || teaOn" class="mb-12">
+      <section v-if="config.lotteryModuleEnabled !== false || config.teaModuleEnabled !== false" class="mb-12">
         <h2 class="flex items-center gap-2 font-cormorant text-3xl font-semibold italic text-bot-ink sm:text-4xl">
           <span class="text-2xl">🌾</span> 规则
         </h2>
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
-          <div v-if="lotteryOn" class="rounded-[24px] border border-bot-sage/50 bg-bot-cream/60 p-6 bot-card">
+          <div v-if="config.lotteryModuleEnabled !== false" class="rounded-[24px] border border-bot-sage/50 bg-bot-cream/60 p-6 bot-card">
             <p class="flex items-center gap-2 font-cormorant text-xl font-semibold text-bot-leaf"><span>🌱</span> 抽奖规则</p>
             <p class="mt-3 whitespace-pre-line font-cormorant text-lg italic leading-relaxed text-bot-ink/80">{{ config.rulesLottery }}</p>
           </div>
-          <div v-if="teaOn" class="rounded-[24px] border border-bot-sage/50 bg-bot-cream/60 p-6 bot-card">
+          <div v-if="config.teaModuleEnabled !== false" class="rounded-[24px] border border-bot-sage/50 bg-bot-cream/60 p-6 bot-card">
             <p class="flex items-center gap-2 font-cormorant text-xl font-semibold text-bot-leaf"><span>🍃</span> 下午茶评分规则</p>
             <p class="mt-3 whitespace-pre-line font-cormorant text-lg italic leading-relaxed text-bot-ink/80">{{ config.rulesTea }}</p>
           </div>
