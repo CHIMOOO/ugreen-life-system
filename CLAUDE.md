@@ -78,4 +78,4 @@ computed: isDrawn, lotteryOn(=period.lotteryEnabled), teaOn(=period.teaEnabled &
 
 - 加配置项：`db.js`(默认值+getConfig) → `index.js`(PUT config) → `admin/Settings.vue` → 用到的前端组件。
 - 加 style：抄 `Style1` 改样式 → `registry.js` 注册 + 标签 → 后端 `STYLE_KEYS`（db.js）+ admin `STYLE_OPTIONS`(api.js) + Dashboard `STYLE_LABEL`。
-- 加 AI 看图录入类技能：放 `.claude/skills/<name>/SKILL.md`（已有 `tea-product-import`）。
+- 加 AI 技能：放 `.claude/skills/<name>/SKILL.md`。已有 `tea-product-import`（看图→调接口录入下午茶商品）、`image-spec`（奖品图/商品图的尺寸·宽高比·格式规范，供出图参考）。技能里凡涉及后端地址一律用 `BASE` 占位、**不要写死 localhost**（部署后地址因环境而异，执行前向用户确认并 `GET $BASE/api/health` 验证）。
