@@ -1,6 +1,8 @@
 // 后台接口客户端。token 存于 localStorage，随请求头 x-admin-token 发送。
 const BASE = import.meta.env.VITE_API_BASE || '';
-export const WEB_BASE = import.meta.env.VITE_WEB_BASE || 'http://localhost:41132';
+// 开发期前台在 41132；生产同源部署时构建前设 VITE_WEB_BASE=（空串）让链接走相对路径 /lottery/:id
+const _web = import.meta.env.VITE_WEB_BASE;
+export const WEB_BASE = _web === undefined ? 'http://localhost:41132' : _web;
 
 const TOKEN_KEY = 'admin_token';
 export const getToken = () => localStorage.getItem(TOKEN_KEY) || '';

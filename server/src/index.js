@@ -516,6 +516,24 @@ app.get('/api/admin/periods/:id/bill-auto', adminAuth, (req, res) => {
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
+// 生产部署：同源伺服前台(/)与后台(/admin)的静态文件（由构建注入到 server/public）。
+// 开发期不存在 public/，此段不生效，前端仍走各自 Vite dev server。
+const webDir = path.join(__dirname, '..', 'public', 'web');
+const adminDir = path.join(__dirname, '..', 'public', 'admin');
+if (fs.existsSync(adminDir)) {
+  app.use('/admin', express.static(adminDir));
+  app.get('/admin/*', (req, res) => res.sendFile(path.join(adminDir, 'index.html')));
+}
+if (fs.existsSync(webDir)) {
+  app.use(express.static(webDir));
+  app.get('*', (req, res) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/admin')) {
+      return res.status(404).end();
+    }
+    res.sendFile(path.join(webDir, 'index.html')); // SPA 回退：/lottery/:id、/bill 等
+  });
+}
+
 app.listen(PORT, () => {
   console.log(`生活系统后端已启动: http://localhost:${PORT}`);
 });

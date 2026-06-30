@@ -9,6 +9,7 @@ dist/
 server/data/
 server/uploads/*
 !server/uploads/.gitkeep
+server/public/
 
 # 编辑器
 .DS_Store

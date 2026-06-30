@@ -1,0 +1,19 @@
+# 兼容老版本 docker-compose（v1）与新版 docker compose（v2）。
+version: "3.8"
+
+services:
+  app:
+    build: .
+    image: choujiang-life:latest
+    container_name: choujiang
+    restart: unless-stopped
+    ports:
+      - "41131:41131"
+    environment:
+      # 管理后台密码（也可改用 .env 文件）
+      ADMIN_PASSWORD: "admin123"
+      PORT: "41131"
+    volumes:
+      # 数据库与上传图片持久化，更新镜像不丢数据
+      - ./server/data:/app/server/data
+      - ./server/uploads:/app/server/uploads
