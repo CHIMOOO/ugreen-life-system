@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "description": "幸运抽奖 & 下午茶系统（前台 web + 后台 admin + node 服务）",
+  "license": "MIT",
+  "author": "zhoulaoshi",
   "scripts": {
     "install:all": "npm --prefix server install && npm --prefix web install && npm --prefix admin install",
     "seed": "npm --prefix server run seed",
