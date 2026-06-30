@@ -19,6 +19,7 @@ import { ref, computed } from 'vue';
 import { assetUrl } from '../api.js';
 import { useLotteryForm, stepExplain, winnersByPrize, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import DiceButton from '../components/DiceButton.vue';
+import { openZoom } from '../useImageZoom.js';
 
 const props = defineProps({
   period: { type: Object, required: true },
@@ -126,12 +127,12 @@ function asciiBar(rate) {
             <div class="term-box bg-term-panel p-5">
               <h3 class="text-lg font-bold uppercase text-term-amber">// 奖品 ls -l</h3>
               <div class="mt-4 space-y-3">
-                <div v-for="(z, i) in period.prizes" :key="i" class="flex items-center gap-3 border border-term-line bg-black/40 p-3">
-                  <div class="h-14 w-14 shrink-0 overflow-hidden border border-term-dim">
-                    <img v-if="z.image" :src="assetUrl(z.image)" class="h-full w-full object-cover" :alt="z.name" />
-                    <div v-else class="grid h-full w-full place-items-center bg-term-bg text-2xl">🎁</div>
-                  </div>
-                  <div class="min-w-0">
+                <div v-for="(z, i) in period.prizes" :key="i" class="overflow-hidden border border-term-line bg-black/40">
+                  <button v-if="z.image" type="button" @click="openZoom(assetUrl(z.image))" class="block w-full cursor-zoom-in border-b border-term-dim">
+                    <img :src="assetUrl(z.image)" class="h-40 w-full object-cover transition hover:brightness-110" :alt="z.name" />
+                  </button>
+                  <div v-else class="grid h-40 w-full place-items-center border-b border-term-dim bg-term-bg text-6xl">🎁</div>
+                  <div class="min-w-0 p-3">
                     <p class="truncate font-bold text-term-green">{{ z.name }}</p>
                     <p class="text-xs text-term-dim">x{{ z.qty }} 名额</p>
                   </div>
@@ -224,16 +225,15 @@ function asciiBar(rate) {
             </div>
           </div>
           <div class="mt-6 grid gap-4 sm:grid-cols-2">
-            <div v-for="(prod, pi) in period.tea.products" :key="prod.id" class="border border-term-line bg-black/40 p-4">
-              <div class="flex items-center gap-3">
-                <div class="h-14 w-14 shrink-0 overflow-hidden border border-term-dim">
-                  <img v-if="prod.image" :src="assetUrl(prod.image)" class="h-full w-full object-cover" :alt="prod.name" />
-                  <div v-else class="grid h-full w-full place-items-center bg-term-bg text-2xl">🍰</div>
-                </div>
-                <div class="min-w-0">
-                  <p class="truncate font-bold text-term-green">{{ prod.name }}</p>
-                  <p class="truncate text-xs text-term-dim">{{ prod.desc }}</p>
-                </div>
+            <div v-for="(prod, pi) in period.tea.products" :key="prod.id" class="overflow-hidden border border-term-line bg-black/40">
+              <button v-if="prod.image" type="button" @click="openZoom(assetUrl(prod.image))" class="block w-full cursor-zoom-in border-b border-term-dim">
+                <img :src="assetUrl(prod.image)" class="h-44 w-full object-cover transition hover:brightness-110" :alt="prod.name" />
+              </button>
+              <div v-else class="grid h-44 w-full place-items-center border-b border-term-dim bg-term-bg text-6xl">🍰</div>
+              <div class="p-4">
+              <div class="min-w-0">
+                <p class="truncate font-bold text-term-green">{{ prod.name }}</p>
+                <p class="truncate text-xs text-term-dim">{{ prod.desc }}</p>
               </div>
               <div class="mt-3 flex items-center gap-2 text-sm">
                 <span class="text-term-dim">[</span>
@@ -251,6 +251,7 @@ function asciiBar(rate) {
               </div>
               <p v-else-if="votedProducts[prod.id]" class="mt-3 border border-term-green bg-term-green/10 py-2 text-center text-xs font-bold text-term-green">// rated · ✓ 已评分</p>
               <p v-else class="mt-3 border border-term-line bg-black/30 py-2 text-center text-xs text-term-dim">// 评分已结束</p>
+              </div>
             </div>
           </div>
         </div>

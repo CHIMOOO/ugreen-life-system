@@ -19,6 +19,7 @@ import { ref, computed } from 'vue';
 import { assetUrl } from '../api.js';
 import { useLotteryForm, stepExplain, winnersByPrize, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import DiceButton from '../components/DiceButton.vue';
+import { openZoom } from '../useImageZoom.js';
 
 const props = defineProps({
   period: { type: Object, required: true },
@@ -134,13 +135,13 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
             <h3 class="font-fredoka text-2xl font-bold text-geo-purple">🎁 奖品</h3>
             <div class="mt-5 space-y-4">
               <div v-for="(z, i) in period.prizes" :key="i"
-                class="relative flex items-center gap-4 rounded-[28px] border-[3px] border-geo-ink bg-white p-4 geo-shadow transition hover:-translate-y-1">
-                <span class="absolute -left-2.5 -top-2.5 h-7 w-7 rounded-[8px] border-[3px] border-geo-ink" :style="{ backgroundColor: candy(i) }"></span>
-                <div class="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-[3px] border-geo-ink">
-                  <img v-if="z.image" :src="assetUrl(z.image)" class="h-full w-full object-cover" :alt="z.name" />
-                  <div v-else class="grid h-full w-full place-items-center text-2xl" :style="{ backgroundColor: candy(i) + '33' }">🎁</div>
-                </div>
-                <div class="min-w-0">
+                class="relative overflow-hidden rounded-[28px] border-[3px] border-geo-ink bg-white geo-shadow transition hover:-translate-y-1">
+                <span class="absolute -left-2.5 -top-2.5 z-10 h-7 w-7 rounded-[8px] border-[3px] border-geo-ink" :style="{ backgroundColor: candy(i) }"></span>
+                <button v-if="z.image" type="button" @click="openZoom(assetUrl(z.image))" class="block w-full cursor-zoom-in">
+                  <img :src="assetUrl(z.image)" class="h-44 w-full border-b-[3px] border-geo-ink object-cover transition hover:brightness-105" :alt="z.name" />
+                </button>
+                <div v-else class="grid h-44 w-full place-items-center border-b-[3px] border-geo-ink text-6xl" :style="{ backgroundColor: candy(i) + '33' }">🎁</div>
+                <div class="min-w-0 p-4">
                   <p class="truncate font-fredoka text-lg font-bold" :style="{ color: candy(i) }">{{ z.name }}</p>
                   <p class="text-sm font-semibold text-geo-ink/50">{{ z.qty }} 个名额</p>
                 </div>
@@ -241,17 +242,16 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
         </div>
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
           <div v-for="(prod, pi) in period.tea.products" :key="prod.id"
-            class="relative rounded-[28px] border-[3px] border-geo-ink bg-white p-5 geo-shadow transition hover:-translate-y-1">
-            <span class="absolute -left-3 -top-3 h-8 w-8 rounded-full border-[3px] border-geo-ink" :style="{ backgroundColor: candy(pi) }"></span>
-            <div class="flex items-center gap-4">
-              <div class="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-[3px] border-geo-ink">
-                <img v-if="prod.image" :src="assetUrl(prod.image)" class="h-full w-full object-cover" :alt="prod.name" />
-                <div v-else class="grid h-full w-full place-items-center text-2xl" :style="{ backgroundColor: candy(pi) + '33' }">🍰</div>
-              </div>
-              <div class="min-w-0">
-                <p class="truncate font-fredoka text-lg font-bold" :style="{ color: candy(pi) }">{{ prod.name }}</p>
-                <p class="truncate text-sm text-geo-ink/50">{{ prod.desc }}</p>
-              </div>
+            class="relative overflow-hidden rounded-[28px] border-[3px] border-geo-ink bg-white geo-shadow transition hover:-translate-y-1">
+            <span class="absolute -left-3 -top-3 z-10 h-8 w-8 rounded-full border-[3px] border-geo-ink" :style="{ backgroundColor: candy(pi) }"></span>
+            <button v-if="prod.image" type="button" @click="openZoom(assetUrl(prod.image))" class="block w-full cursor-zoom-in">
+              <img :src="assetUrl(prod.image)" class="h-44 w-full border-b-[3px] border-geo-ink object-cover transition hover:brightness-105" :alt="prod.name" />
+            </button>
+            <div v-else class="grid h-44 w-full place-items-center border-b-[3px] border-geo-ink text-6xl" :style="{ backgroundColor: candy(pi) + '33' }">🍰</div>
+            <div class="p-5">
+            <div class="min-w-0">
+              <p class="truncate font-fredoka text-lg font-bold" :style="{ color: candy(pi) }">{{ prod.name }}</p>
+              <p class="truncate text-sm text-geo-ink/50">{{ prod.desc }}</p>
             </div>
             <div class="mt-4 flex items-center gap-3">
               <div class="h-4 flex-1 overflow-hidden rounded-full border-[3px] border-geo-ink bg-geo-bg">
@@ -270,6 +270,7 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
             </div>
             <p v-else-if="votedProducts[prod.id]" class="mt-3 rounded-full border-[3px] border-geo-ink bg-geo-teal py-2 text-center font-fredoka text-sm font-bold text-white">✓ 已评分</p>
             <p v-else class="mt-3 rounded-full border-[3px] border-geo-ink bg-geo-bg py-2 text-center text-sm font-semibold text-geo-ink/50">评分已结束</p>
+            </div>
           </div>
         </div>
       </section>

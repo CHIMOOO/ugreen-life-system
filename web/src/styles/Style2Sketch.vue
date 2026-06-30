@@ -19,6 +19,7 @@ import { ref, computed } from 'vue';
 import { assetUrl } from '../api.js';
 import { useLotteryForm, stepExplain, winnersByPrize, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import DiceButton from '../components/DiceButton.vue';
+import { openZoom } from '../useImageZoom.js';
 
 const props = defineProps({
   period: { type: Object, required: true },
@@ -124,13 +125,13 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
             <h3 class="font-kalam text-2xl font-bold text-sketch-blue">奖品清单</h3>
             <div class="mt-5 space-y-5">
               <div v-for="(z, i) in period.prizes" :key="i"
-                class="flex items-center gap-4 border-[3px] border-sketch-ink bg-white p-4 shadow-sketch transition-transform duration-100 hover:rotate-1"
+                class="overflow-hidden border-[3px] border-sketch-ink bg-white shadow-sketch transition-transform duration-100 hover:rotate-1"
                 :style="{ transform: `rotate(${tilt(i)})`, borderRadius: wobble(i) }">
-                <div class="h-16 w-16 shrink-0 overflow-hidden border-[3px] border-sketch-ink wobbly-md">
-                  <img v-if="z.image" :src="assetUrl(z.image)" class="h-full w-full object-cover" :alt="z.name" />
-                  <div v-else class="grid h-full w-full place-items-center bg-sketch-muted text-2xl">🎁</div>
-                </div>
-                <div class="min-w-0">
+                <button v-if="z.image" type="button" @click="openZoom(assetUrl(z.image))" class="block w-full cursor-zoom-in border-b-[3px] border-sketch-ink">
+                  <img :src="assetUrl(z.image)" class="h-44 w-full object-cover transition hover:brightness-105" :alt="z.name" />
+                </button>
+                <div v-else class="grid h-44 w-full place-items-center border-b-[3px] border-sketch-ink bg-sketch-muted text-6xl">🎁</div>
+                <div class="min-w-0 p-4">
                   <p class="truncate font-kalam text-lg font-bold text-sketch-ink">{{ z.name }}</p>
                   <p class="font-patrick text-sm text-sketch-ink/60">{{ z.qty }} 个名额</p>
                 </div>
@@ -224,17 +225,16 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
         </div>
         <div class="mt-6 grid gap-6 sm:grid-cols-2">
           <div v-for="(prod, pi) in period.tea.products" :key="prod.id"
-            class="border-[3px] border-sketch-ink bg-white p-5 shadow-sketch transition-transform duration-100 hover:rotate-1"
+            class="overflow-hidden border-[3px] border-sketch-ink bg-white shadow-sketch transition-transform duration-100 hover:rotate-1"
             :style="{ transform: `rotate(${tilt(pi)})`, borderRadius: wobble(pi) }">
-            <div class="flex items-center gap-4">
-              <div class="h-16 w-16 shrink-0 overflow-hidden border-[3px] border-sketch-ink wobbly-md">
-                <img v-if="prod.image" :src="assetUrl(prod.image)" class="h-full w-full object-cover" :alt="prod.name" />
-                <div v-else class="grid h-full w-full place-items-center bg-sketch-muted text-2xl">🍰</div>
-              </div>
-              <div class="min-w-0">
-                <p class="truncate font-kalam text-lg font-bold text-sketch-ink">{{ prod.name }}</p>
-                <p class="truncate font-patrick text-sm text-sketch-ink/60">{{ prod.desc }}</p>
-              </div>
+            <button v-if="prod.image" type="button" @click="openZoom(assetUrl(prod.image))" class="block w-full cursor-zoom-in border-b-[3px] border-sketch-ink">
+              <img :src="assetUrl(prod.image)" class="h-44 w-full object-cover transition hover:brightness-105" :alt="prod.name" />
+            </button>
+            <div v-else class="grid h-44 w-full place-items-center border-b-[3px] border-sketch-ink bg-sketch-muted text-6xl">🍰</div>
+            <div class="p-5">
+            <div class="min-w-0">
+              <p class="truncate font-kalam text-lg font-bold text-sketch-ink">{{ prod.name }}</p>
+              <p class="truncate font-patrick text-sm text-sketch-ink/60">{{ prod.desc }}</p>
             </div>
             <div class="mt-4 flex items-center gap-3">
               <div class="h-4 flex-1 overflow-hidden border-[3px] border-sketch-ink bg-sketch-muted wobbly-pill">
@@ -252,6 +252,7 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
             </div>
             <p v-else-if="votedProducts[prod.id]" class="mt-3 border-[3px] border-sketch-blue bg-sketch-blue/10 py-2 text-center font-kalam text-sm font-bold text-sketch-blue wobbly-pill">✓ 已评分</p>
             <p v-else class="mt-3 border-[3px] border-dashed border-sketch-ink/40 bg-sketch-muted/40 py-2 text-center font-patrick text-sm text-sketch-ink/50 wobbly-pill">评分已结束</p>
+            </div>
           </div>
         </div>
       </section>

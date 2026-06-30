@@ -21,6 +21,7 @@ import { ref, computed } from 'vue';
 import { assetUrl } from '../api.js';
 import { useLotteryForm, stepExplain, winnersByPrize, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import DiceButton from '../components/DiceButton.vue';
+import { openZoom } from '../useImageZoom.js';
 
 const props = defineProps({
   period: { type: Object, required: true },
@@ -122,12 +123,12 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
             <h3 class="font-playfair text-2xl font-bold italic text-aca-ink">奖品图录</h3>
             <div class="aca-rule mt-3"></div>
             <div class="mt-5 space-y-4">
-              <div v-for="(z, i) in period.prizes" :key="i" class="flex items-center gap-4 bg-aca-panel p-4 aca-frame">
-                <div class="h-16 w-16 shrink-0 overflow-hidden border-2 border-aca-ink">
-                  <img v-if="z.image" :src="assetUrl(z.image)" class="h-full w-full object-cover" :alt="z.name" />
-                  <div v-else class="grid h-full w-full place-items-center bg-aca-paper text-2xl">🎁</div>
-                </div>
-                <div class="min-w-0">
+              <div v-for="(z, i) in period.prizes" :key="i" class="overflow-hidden bg-aca-panel aca-frame">
+                <button v-if="z.image" type="button" @click="openZoom(assetUrl(z.image))" class="block w-full cursor-zoom-in border-b-2 border-aca-ink">
+                  <img :src="assetUrl(z.image)" class="h-44 w-full object-cover transition hover:brightness-105" :alt="z.name" />
+                </button>
+                <div v-else class="grid h-44 w-full place-items-center border-b-2 border-aca-ink bg-aca-paper text-6xl">🎁</div>
+                <div class="min-w-0 p-4">
                   <p class="truncate font-playfair text-lg font-semibold text-aca-burgundy">{{ z.name }}</p>
                   <p class="text-sm italic text-aca-brown">{{ z.qty }} 个名额</p>
                 </div>
@@ -239,16 +240,15 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
           </ul>
         </div>
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
-          <div v-for="(prod, pi) in period.tea.products" :key="prod.id" class="aca-frame bg-aca-panel p-5">
-            <div class="flex items-center gap-4">
-              <div class="h-16 w-16 shrink-0 overflow-hidden border-2 border-aca-ink">
-                <img v-if="prod.image" :src="assetUrl(prod.image)" class="h-full w-full object-cover" :alt="prod.name" />
-                <div v-else class="grid h-full w-full place-items-center bg-aca-paper text-2xl">🍰</div>
-              </div>
-              <div class="min-w-0">
-                <p class="truncate font-playfair text-lg font-bold italic text-aca-ink">{{ prod.name }}</p>
-                <p class="truncate text-sm italic text-aca-brown">{{ prod.desc }}</p>
-              </div>
+          <div v-for="(prod, pi) in period.tea.products" :key="prod.id" class="aca-frame overflow-hidden bg-aca-panel">
+            <button v-if="prod.image" type="button" @click="openZoom(assetUrl(prod.image))" class="block w-full cursor-zoom-in border-b-2 border-aca-ink">
+              <img :src="assetUrl(prod.image)" class="h-44 w-full object-cover transition hover:brightness-105" :alt="prod.name" />
+            </button>
+            <div v-else class="grid h-44 w-full place-items-center border-b-2 border-aca-ink bg-aca-paper text-6xl">🍰</div>
+            <div class="p-5">
+            <div class="min-w-0">
+              <p class="truncate font-playfair text-lg font-bold italic text-aca-ink">{{ prod.name }}</p>
+              <p class="truncate text-sm italic text-aca-brown">{{ prod.desc }}</p>
             </div>
             <div class="aca-rule mt-4"></div>
             <div class="mt-4 flex items-center gap-3">
@@ -267,6 +267,7 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
             </div>
             <p v-else-if="votedProducts[prod.id]" class="mt-4 border-2 border-aca-burgundy py-2 text-center font-playfair text-sm italic text-aca-burgundy">✓ 已品鉴</p>
             <p v-else class="mt-4 border border-dashed border-aca-brown/50 py-2 text-center text-sm italic text-aca-brown">评分已结束</p>
+            </div>
           </div>
         </div>
       </section>

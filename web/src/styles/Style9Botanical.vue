@@ -19,6 +19,7 @@ import { ref, computed } from 'vue';
 import { assetUrl } from '../api.js';
 import { useLotteryForm, stepExplain, winnersByPrize, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import DiceButton from '../components/DiceButton.vue';
+import { openZoom } from '../useImageZoom.js';
 
 const props = defineProps({
   period: { type: Object, required: true },
@@ -134,12 +135,12 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
               <span class="text-xl">🌸</span> 奖品
             </h3>
             <div class="mt-5 space-y-4">
-              <div v-for="(z, i) in period.prizes" :key="i" class="flex items-center gap-4 rounded-[24px] border border-bot-sage/40 bg-bot-cream/70 p-4 bot-card transition hover:-translate-y-0.5">
-                <div class="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-bot-sage/50 bg-bot-bg">
-                  <img v-if="z.image" :src="assetUrl(z.image)" class="h-full w-full object-cover" :alt="z.name" />
-                  <div v-else class="grid h-full w-full place-items-center bg-bot-sage/20 text-2xl">🎁</div>
-                </div>
-                <div class="min-w-0">
+              <div v-for="(z, i) in period.prizes" :key="i" class="overflow-hidden rounded-[24px] border border-bot-sage/40 bg-bot-cream/70 bot-card transition hover:-translate-y-0.5">
+                <button v-if="z.image" type="button" @click="openZoom(assetUrl(z.image))" class="block w-full cursor-zoom-in">
+                  <img :src="assetUrl(z.image)" class="h-44 w-full object-cover transition hover:brightness-105" :alt="z.name" />
+                </button>
+                <div v-else class="grid h-44 w-full place-items-center bg-bot-sage/20 text-6xl">🎁</div>
+                <div class="min-w-0 p-4">
                   <p class="truncate font-cormorant text-lg font-semibold text-bot-ink">{{ z.name }}</p>
                   <p class="text-sm text-bot-leaf">{{ z.qty }} 个名额</p>
                 </div>
@@ -231,34 +232,34 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
           </div>
         </div>
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
-          <div v-for="(prod, pi) in period.tea.products" :key="prod.id" class="rounded-[24px] border border-bot-sage/40 bg-bot-cream/70 p-5 bot-card transition hover:-translate-y-0.5">
-            <div class="flex items-center gap-4">
-              <div class="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-bot-sage/50 bg-bot-bg">
-                <img v-if="prod.image" :src="assetUrl(prod.image)" class="h-full w-full object-cover" :alt="prod.name" />
-                <div v-else class="grid h-full w-full place-items-center bg-bot-sage/20 text-2xl">🍰</div>
-              </div>
+          <div v-for="(prod, pi) in period.tea.products" :key="prod.id" class="overflow-hidden rounded-[24px] border border-bot-sage/40 bg-bot-cream/70 bot-card transition hover:-translate-y-0.5">
+            <button v-if="prod.image" type="button" @click="openZoom(assetUrl(prod.image))" class="block w-full cursor-zoom-in">
+              <img :src="assetUrl(prod.image)" class="h-44 w-full object-cover transition hover:brightness-105" :alt="prod.name" />
+            </button>
+            <div v-else class="grid h-44 w-full place-items-center bg-bot-sage/20 text-6xl">🍰</div>
+            <div class="p-5">
               <div class="min-w-0">
                 <p class="truncate font-cormorant text-lg font-semibold text-bot-ink">{{ prod.name }}</p>
                 <p class="truncate text-sm text-bot-leaf">{{ prod.desc }}</p>
               </div>
-            </div>
-            <div class="mt-4 flex items-center gap-3">
-              <div class="h-3 flex-1 overflow-hidden rounded-full bg-bot-sage/25">
-                <div class="h-full rounded-full bg-bot-leaf transition-all" :style="{ width: prod.ratings.goodRate + '%' }"></div>
+              <div class="mt-4 flex items-center gap-3">
+                <div class="h-3 flex-1 overflow-hidden rounded-full bg-bot-sage/25">
+                  <div class="h-full rounded-full bg-bot-leaf transition-all" :style="{ width: prod.ratings.goodRate + '%' }"></div>
+                </div>
+                <span class="shrink-0 font-cormorant text-sm font-semibold text-bot-terracotta">好评 {{ prod.ratings.goodRate }}%</span>
               </div>
-              <span class="shrink-0 font-cormorant text-sm font-semibold text-bot-terracotta">好评 {{ prod.ratings.goodRate }}%</span>
+              <p class="mt-1 text-xs text-bot-ink/55">{{ prod.ratings.total }} 票 · 推荐 {{ prod.ratings.good }} · 还行 {{ prod.ratings.ok }} · 不推荐 {{ prod.ratings.bad }}</p>
+              <p v-if="teaExtraText(prod)" class="mt-1 text-xs font-medium text-bot-leaf">📦 {{ teaExtraText(prod) }}</p>
+              <div v-if="period.tea.ratingOpen && !votedProducts[prod.id]" class="mt-3 grid grid-cols-3 gap-2">
+                <button v-for="lv in TEA_LEVELS" :key="lv.key" :disabled="ratingBusy[prod.id]" @click="doRate(prod.id, lv.key)"
+                  class="rounded-full py-2 text-sm font-medium transition hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50"
+                  :class="lv.key === 'good' ? 'bg-bot-leaf text-bot-cream' : lv.key === 'ok' ? 'border border-bot-sage bg-bot-sage/15 text-bot-leaf' : 'border border-bot-terracotta text-bot-terracotta'">
+                  {{ lv.emoji }} {{ lv.label }}
+                </button>
+              </div>
+              <p v-else-if="votedProducts[prod.id]" class="mt-3 rounded-full bg-bot-leaf/15 py-2 text-center text-sm font-medium text-bot-leaf">🌿 已评</p>
+              <p v-else class="mt-3 rounded-full bg-bot-sage/15 py-2 text-center text-sm text-bot-ink/55">评分已结束</p>
             </div>
-            <p class="mt-1 text-xs text-bot-ink/55">{{ prod.ratings.total }} 票 · 推荐 {{ prod.ratings.good }} · 还行 {{ prod.ratings.ok }} · 不推荐 {{ prod.ratings.bad }}</p>
-            <p v-if="teaExtraText(prod)" class="mt-1 text-xs font-medium text-bot-leaf">📦 {{ teaExtraText(prod) }}</p>
-            <div v-if="period.tea.ratingOpen && !votedProducts[prod.id]" class="mt-3 grid grid-cols-3 gap-2">
-              <button v-for="lv in TEA_LEVELS" :key="lv.key" :disabled="ratingBusy[prod.id]" @click="doRate(prod.id, lv.key)"
-                class="rounded-full py-2 text-sm font-medium transition hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50"
-                :class="lv.key === 'good' ? 'bg-bot-leaf text-bot-cream' : lv.key === 'ok' ? 'border border-bot-sage bg-bot-sage/15 text-bot-leaf' : 'border border-bot-terracotta text-bot-terracotta'">
-                {{ lv.emoji }} {{ lv.label }}
-              </button>
-            </div>
-            <p v-else-if="votedProducts[prod.id]" class="mt-3 rounded-full bg-bot-leaf/15 py-2 text-center text-sm font-medium text-bot-leaf">🌿 已评</p>
-            <p v-else class="mt-3 rounded-full bg-bot-sage/15 py-2 text-center text-sm text-bot-ink/55">评分已结束</p>
           </div>
         </div>
       </section>

@@ -20,6 +20,7 @@ import { ref, computed } from 'vue';
 import { assetUrl } from '../api.js';
 import { useLotteryForm, stepExplain, winnersByPrize, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import DiceButton from '../components/DiceButton.vue';
+import { openZoom } from '../useImageZoom.js';
 
 const props = defineProps({
   period: { type: Object, required: true },
@@ -117,12 +118,12 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
           <div class="lg:col-span-2">
             <h3 class="text-lg font-semibold text-neu-fg">奖品</h3>
             <div class="mt-5 space-y-4">
-              <div v-for="(z, i) in period.prizes" :key="i" class="neu-raised flex items-center gap-4 rounded-[24px] p-4">
-                <div class="neu-pressed grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl">
-                  <img v-if="z.image" :src="assetUrl(z.image)" class="h-full w-full rounded-2xl object-cover" :alt="z.name" />
-                  <div v-else class="grid h-full w-full place-items-center text-2xl">🎁</div>
-                </div>
-                <div class="min-w-0">
+              <div v-for="(z, i) in period.prizes" :key="i" class="neu-raised overflow-hidden rounded-[24px]">
+                <button v-if="z.image" type="button" @click="openZoom(assetUrl(z.image))" class="block w-full cursor-zoom-in">
+                  <img :src="assetUrl(z.image)" class="h-44 w-full object-cover transition hover:brightness-105" :alt="z.name" />
+                </button>
+                <div v-else class="grid h-44 w-full place-items-center bg-neu-bg text-6xl">🎁</div>
+                <div class="min-w-0 p-4">
                   <p class="truncate font-semibold text-neu-fg">{{ z.name }}</p>
                   <p class="text-sm text-neu-muted">{{ z.qty }} 个名额</p>
                 </div>
@@ -207,33 +208,33 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
           </div>
         </div>
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
-          <div v-for="(prod, pi) in period.tea.products" :key="prod.id" class="neu-raised rounded-[28px] p-5">
-            <div class="flex items-center gap-4">
-              <div class="neu-pressed grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl">
-                <img v-if="prod.image" :src="assetUrl(prod.image)" class="h-full w-full rounded-2xl object-cover" :alt="prod.name" />
-                <div v-else class="grid h-full w-full place-items-center text-2xl">🍰</div>
-              </div>
+          <div v-for="(prod, pi) in period.tea.products" :key="prod.id" class="neu-raised overflow-hidden rounded-[28px]">
+            <button v-if="prod.image" type="button" @click="openZoom(assetUrl(prod.image))" class="block w-full cursor-zoom-in">
+              <img :src="assetUrl(prod.image)" class="h-44 w-full object-cover transition hover:brightness-105" :alt="prod.name" />
+            </button>
+            <div v-else class="grid h-44 w-full place-items-center bg-neu-bg text-6xl">🍰</div>
+            <div class="p-5">
               <div class="min-w-0">
                 <p class="truncate text-lg font-semibold text-neu-fg">{{ prod.name }}</p>
                 <p class="truncate text-sm text-neu-muted">{{ prod.desc }}</p>
               </div>
-            </div>
-            <div class="mt-5 flex items-center gap-3">
-              <div class="neu-pressed h-3.5 flex-1 overflow-hidden rounded-full p-0.5">
-                <div class="h-full rounded-full bg-neu-accent" :style="{ width: prod.ratings.goodRate + '%' }"></div>
+              <div class="mt-4 flex items-center gap-3">
+                <div class="neu-pressed h-3.5 flex-1 overflow-hidden rounded-full p-0.5">
+                  <div class="h-full rounded-full bg-neu-accent" :style="{ width: prod.ratings.goodRate + '%' }"></div>
+                </div>
+                <span class="shrink-0 font-mono text-sm font-semibold text-neu-accent">好评 {{ prod.ratings.goodRate }}%</span>
               </div>
-              <span class="shrink-0 font-mono text-sm font-semibold text-neu-accent">好评 {{ prod.ratings.goodRate }}%</span>
+              <p class="mt-2 text-xs text-neu-muted">{{ prod.ratings.total }} 票 · 推荐 {{ prod.ratings.good }} · 还行 {{ prod.ratings.ok }} · 不推荐 {{ prod.ratings.bad }}</p>
+              <p v-if="teaExtraText(prod)" class="mt-1 text-xs font-medium text-neu-accent">📦 {{ teaExtraText(prod) }}</p>
+              <div v-if="period.tea.ratingOpen && !votedProducts[prod.id]" class="mt-4 grid grid-cols-3 gap-2.5">
+                <button v-for="lv in TEA_LEVELS" :key="lv.key" :disabled="ratingBusy[prod.id]" @click="doRate(prod.id, lv.key)"
+                  class="neu-raised rounded-2xl py-2.5 text-sm font-medium text-neu-fg transition-all duration-200 hover:-translate-y-0.5 hover:text-neu-accent active:neu-pressed active:translate-y-0 disabled:opacity-50">
+                  {{ lv.emoji }} {{ lv.label }}
+                </button>
+              </div>
+              <p v-else-if="votedProducts[prod.id]" class="neu-pressed mt-4 rounded-2xl py-2.5 text-center text-sm font-semibold text-neu-accent">✓ 已评分</p>
+              <p v-else class="neu-pressed mt-4 rounded-2xl py-2.5 text-center text-sm text-neu-muted">评分已结束</p>
             </div>
-            <p class="mt-2 text-xs text-neu-muted">{{ prod.ratings.total }} 票 · 推荐 {{ prod.ratings.good }} · 还行 {{ prod.ratings.ok }} · 不推荐 {{ prod.ratings.bad }}</p>
-            <p v-if="teaExtraText(prod)" class="mt-1 text-xs font-medium text-neu-accent">📦 {{ teaExtraText(prod) }}</p>
-            <div v-if="period.tea.ratingOpen && !votedProducts[prod.id]" class="mt-4 grid grid-cols-3 gap-2.5">
-              <button v-for="lv in TEA_LEVELS" :key="lv.key" :disabled="ratingBusy[prod.id]" @click="doRate(prod.id, lv.key)"
-                class="neu-raised rounded-2xl py-2.5 text-sm font-medium text-neu-fg transition-all duration-200 hover:-translate-y-0.5 hover:text-neu-accent active:neu-pressed active:translate-y-0 disabled:opacity-50">
-                {{ lv.emoji }} {{ lv.label }}
-              </button>
-            </div>
-            <p v-else-if="votedProducts[prod.id]" class="neu-pressed mt-4 rounded-2xl py-2.5 text-center text-sm font-semibold text-neu-accent">✓ 已评分</p>
-            <p v-else class="neu-pressed mt-4 rounded-2xl py-2.5 text-center text-sm text-neu-muted">评分已结束</p>
           </div>
         </div>
       </section>

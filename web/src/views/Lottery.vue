@@ -6,6 +6,7 @@ import { api } from '../api.js';
 import { usePeriodShell } from '../usePeriodShell.js';
 import { resolveStyle } from '../styles/registry.js';
 import AppLoader from '../components/AppLoader.vue';
+import ImageZoomOverlay from '../components/ImageZoomOverlay.vue';
 
 const route = useRoute();
 const id = route.params.id;
@@ -56,4 +57,5 @@ onMounted(async () => {
     @name-input="onNameInput"
     @cancel="onCancel"
   />
+  <ImageZoomOverlay />
 </template>

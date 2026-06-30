@@ -19,6 +19,7 @@ import { ref, computed } from 'vue';
 import { assetUrl } from '../api.js';
 import { useLotteryForm, stepExplain, winnersByPrize, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import DiceButton from '../components/DiceButton.vue';
+import { openZoom } from '../useImageZoom.js';
 
 const props = defineProps({
   period: { type: Object, required: true },
@@ -112,12 +113,12 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
           <div class="lg:col-span-2">
             <h3 class="font-outfit text-2xl font-black uppercase text-max-secondary max-text-shadow-sm">奖品</h3>
             <div class="mt-5 space-y-4">
-              <div v-for="(z, i) in period.prizes" :key="i" class="flex items-center gap-4 rounded-3xl border-4 bg-max-muted/60 p-4 shadow-multi backdrop-blur-sm" :style="{ borderColor: accent(i) }">
-                <div class="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-4" :style="{ borderColor: accent(i + 1) }">
-                  <img v-if="z.image" :src="assetUrl(z.image)" class="h-full w-full object-cover" :alt="z.name" />
-                  <div v-else class="grid h-full w-full place-items-center text-2xl" :style="{ backgroundColor: accent(i) + '33' }">🎁</div>
-                </div>
-                <div class="min-w-0">
+              <div v-for="(z, i) in period.prizes" :key="i" class="overflow-hidden rounded-3xl border-4 bg-max-muted/60 shadow-multi backdrop-blur-sm" :style="{ borderColor: accent(i) }">
+                <button v-if="z.image" type="button" @click="openZoom(assetUrl(z.image))" class="block w-full cursor-zoom-in">
+                  <img :src="assetUrl(z.image)" class="h-44 w-full object-cover transition hover:brightness-110" :alt="z.name" />
+                </button>
+                <div v-else class="grid h-44 w-full place-items-center text-6xl" :style="{ backgroundColor: accent(i) + '33' }">🎁</div>
+                <div class="p-4">
                   <p class="truncate font-black uppercase" :style="{ color: accent(i) }">{{ z.name }}</p>
                   <p class="text-sm text-white/70">{{ z.qty }} 个名额</p>
                 </div>
@@ -200,17 +201,16 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
           </div>
         </div>
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
-          <div v-for="(prod, pi) in period.tea.products" :key="prod.id" class="rounded-3xl border-4 bg-max-muted/60 p-5 shadow-multi backdrop-blur-sm" :style="{ borderColor: accent(pi) }">
-            <div class="flex items-center gap-4">
-              <div class="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-4" :style="{ borderColor: accent(pi + 3) }">
-                <img v-if="prod.image" :src="assetUrl(prod.image)" class="h-full w-full object-cover" :alt="prod.name" />
-                <div v-else class="grid h-full w-full place-items-center text-2xl" :style="{ backgroundColor: accent(pi) + '33' }">🍰</div>
-              </div>
+          <div v-for="(prod, pi) in period.tea.products" :key="prod.id" class="overflow-hidden rounded-3xl border-4 bg-max-muted/60 shadow-multi backdrop-blur-sm" :style="{ borderColor: accent(pi) }">
+            <button v-if="prod.image" type="button" @click="openZoom(assetUrl(prod.image))" class="block w-full cursor-zoom-in">
+              <img :src="assetUrl(prod.image)" class="h-44 w-full object-cover transition hover:brightness-110" :alt="prod.name" />
+            </button>
+            <div v-else class="grid h-44 w-full place-items-center text-6xl" :style="{ backgroundColor: accent(pi) + '33' }">🍰</div>
+            <div class="p-5">
               <div class="min-w-0">
                 <p class="truncate font-outfit text-lg font-black" :style="{ color: accent(pi) }">{{ prod.name }}</p>
-                <p class="truncate text-sm text-white/60">{{ prod.desc }}</p>
+                <p class="text-sm text-white/60">{{ prod.desc }}</p>
               </div>
-            </div>
             <div class="mt-4 flex items-center gap-3">
               <div class="h-3 flex-1 overflow-hidden rounded-full bg-black/40">
                 <div class="h-full rounded-full" :style="{ width: prod.ratings.goodRate + '%', backgroundColor: accent(pi + 1) }"></div>
@@ -227,6 +227,7 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
             </div>
             <p v-else-if="votedProducts[prod.id]" class="mt-3 rounded-full bg-max-secondary/20 py-2 text-center text-sm font-bold text-max-secondary">✓ 已评分</p>
             <p v-else class="mt-3 rounded-full bg-black/30 py-2 text-center text-sm text-white/50">评分已结束</p>
+            </div>
           </div>
         </div>
       </section>

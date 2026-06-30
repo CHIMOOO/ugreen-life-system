@@ -19,6 +19,7 @@ import { ref, computed } from 'vue';
 import { assetUrl } from '../api.js';
 import { useLotteryForm, stepExplain, winnersByPrize, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import DiceButton from '../components/DiceButton.vue';
+import { openZoom } from '../useImageZoom.js';
 
 const props = defineProps({
   period: { type: Object, required: true },
@@ -114,12 +115,12 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
           <div class="lg:col-span-2">
             <h3 class="font-orbitron text-xl font-black uppercase tracking-wide text-cyber-cyan cyber-text-cyan">▰ 奖品 // LOOT</h3>
             <div class="mt-5 space-y-4">
-              <div v-for="(z, i) in period.prizes" :key="i" class="flex items-center gap-4 cyber-clip border bg-cyber-panel/80 p-4 backdrop-blur" :style="{ borderColor: accent(i), boxShadow: '0 0 10px ' + accent(i) + '66, 0 0 24px ' + accent(i) + '33' }">
-                <div class="h-16 w-16 shrink-0 overflow-hidden cyber-clip border" :style="{ borderColor: accent(i + 1) }">
-                  <img v-if="z.image" :src="assetUrl(z.image)" class="h-full w-full object-cover" :alt="z.name" />
-                  <div v-else class="grid h-full w-full place-items-center text-2xl" :style="{ backgroundColor: accent(i) + '22' }">🎁</div>
-                </div>
-                <div class="min-w-0">
+              <div v-for="(z, i) in period.prizes" :key="i" class="overflow-hidden cyber-clip border bg-cyber-panel/80 backdrop-blur" :style="{ borderColor: accent(i), boxShadow: '0 0 10px ' + accent(i) + '66, 0 0 24px ' + accent(i) + '33' }">
+                <button v-if="z.image" type="button" @click="openZoom(assetUrl(z.image))" class="block w-full cursor-zoom-in">
+                  <img :src="assetUrl(z.image)" class="h-44 w-full object-cover transition hover:brightness-110" :alt="z.name" />
+                </button>
+                <div v-else class="grid h-44 w-full place-items-center text-6xl" :style="{ backgroundColor: accent(i) + '22' }">🎁</div>
+                <div class="p-4">
                   <p class="truncate font-orbitron text-sm font-black uppercase" :style="{ color: accent(i) }">{{ z.name }}</p>
                   <p class="font-mono text-sm text-cyber-fg/60">{{ z.qty }} 个名额</p>
                 </div>
@@ -204,16 +205,15 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
           </div>
         </div>
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
-          <div v-for="(prod, pi) in period.tea.products" :key="prod.id" class="cyber-clip border bg-cyber-panel/80 p-5 backdrop-blur" :style="{ borderColor: accent(pi), boxShadow: '0 0 10px ' + accent(pi) + '55, 0 0 22px ' + accent(pi) + '22' }">
-            <div class="flex items-center gap-4">
-              <div class="h-16 w-16 shrink-0 overflow-hidden cyber-clip border" :style="{ borderColor: accent(pi + 3) }">
-                <img v-if="prod.image" :src="assetUrl(prod.image)" class="h-full w-full object-cover" :alt="prod.name" />
-                <div v-else class="grid h-full w-full place-items-center text-2xl" :style="{ backgroundColor: accent(pi) + '22' }">🍰</div>
-              </div>
-              <div class="min-w-0">
-                <p class="truncate font-orbitron text-base font-black uppercase tracking-wide" :style="{ color: accent(pi) }">{{ prod.name }}</p>
-                <p class="truncate font-mono text-sm text-cyber-fg/55">{{ prod.desc }}</p>
-              </div>
+          <div v-for="(prod, pi) in period.tea.products" :key="prod.id" class="overflow-hidden cyber-clip border bg-cyber-panel/80 backdrop-blur" :style="{ borderColor: accent(pi), boxShadow: '0 0 10px ' + accent(pi) + '55, 0 0 22px ' + accent(pi) + '22' }">
+            <button v-if="prod.image" type="button" @click="openZoom(assetUrl(prod.image))" class="block w-full cursor-zoom-in">
+              <img :src="assetUrl(prod.image)" class="h-44 w-full object-cover transition hover:brightness-110" :alt="prod.name" />
+            </button>
+            <div v-else class="grid h-44 w-full place-items-center text-6xl" :style="{ backgroundColor: accent(pi) + '22' }">🍰</div>
+            <div class="p-5">
+            <div class="min-w-0">
+              <p class="truncate font-orbitron text-base font-black uppercase tracking-wide" :style="{ color: accent(pi) }">{{ prod.name }}</p>
+              <p class="truncate font-mono text-sm text-cyber-fg/55">{{ prod.desc }}</p>
             </div>
             <div class="mt-4 flex items-center gap-3">
               <div class="h-3 flex-1 overflow-hidden cyber-clip border border-cyber-cyan/30 bg-black/50">
@@ -231,6 +231,7 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
             </div>
             <p v-else-if="votedProducts[prod.id]" class="mt-3 cyber-clip border border-cyber-cyan bg-cyber-cyan/10 py-2 text-center font-orbitron text-sm font-bold uppercase tracking-widest text-cyber-cyan cyber-text-cyan">[ VOTED ] 已评分</p>
             <p v-else class="mt-3 cyber-clip border border-cyber-fg/20 bg-black/40 py-2 text-center font-mono text-sm text-cyber-fg/45">评分已结束</p>
+            </div>
           </div>
         </div>
       </section>

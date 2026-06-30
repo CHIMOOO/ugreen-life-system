@@ -6,6 +6,7 @@ import { usePeriodShell } from '../usePeriodShell.js';
 import { resolveStyle, STYLE_KEYS } from '../styles/registry.js';
 import AppLoader from '../components/AppLoader.vue';
 import NoEvent from '../components/NoEvent.vue';
+import ImageZoomOverlay from '../components/ImageZoomOverlay.vue';
 
 const loading = ref(true);
 const config = ref(null);
@@ -61,6 +62,8 @@ onMounted(async () => {
       to="/bill"
       class="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/90 px-5 py-3 font-bold text-slate-800 shadow-lg backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-white"
     >📒 总账单</RouterLink>
+
+    <ImageZoomOverlay />
   </template>
 </template>
 
