@@ -1,0 +1,17 @@
+{
+  "name": "choujiang-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "抽奖系统后端服务 (Node + node:sqlite)",
+  "scripts": {
+    "start": "node --no-warnings --env-file-if-exists=.env src/index.js",
+    "dev": "node --no-warnings --env-file-if-exists=.env --watch src/index.js",
+    "seed": "node --no-warnings src/seed.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "multer": "^2.0.1"
+  }
+}
