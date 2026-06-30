@@ -17,7 +17,7 @@ const isNew = computed(() => !props.period?.id);
 function blank() {
   return {
     title: '', style: 'style1', lotteryEnabled: true, teaEnabled: false,
-    teaRatingHours: 24, prizes: [{ name: '', qty: 1, image: null }], productIds: [],
+    teaRatingHours: 24, prizes: [{ name: '', qty: 1, image: null }], products: [],
   };
 }
 function loadFrom(p) {
@@ -28,7 +28,10 @@ function loadFrom(p) {
   f.lotteryEnabled = !!p.lotteryEnabled;
   f.teaEnabled = !!p.teaEnabled;
   f.teaRatingHours = p.tea?.ratingHours || 24;
-  f.productIds = Array.isArray(p.productIds) ? [...p.productIds] : [];
+  // products: [{id, amount}]，amount=本期实际金额（默认套用商品预设价）
+  f.products = Array.isArray(p.productItems)
+    ? p.productItems.map((x) => ({ id: x.id, amount: x.amount ?? '' }))
+    : (p.productIds || []).map((id) => ({ id, amount: '' }));
   f.prizes = (p.prizes?.length ? p.prizes : [{ name: '', qty: 1, image: null }]).map((z) => ({
     name: z.name || '', qty: z.qty || 1, image: z.image || null,
   }));
@@ -42,10 +45,25 @@ watch(() => props.period?.id, () => loadFrom(props.period), { immediate: true })
 
 function addPrize() { f.prizes.push({ name: '', qty: 1, image: null }); }
 function removePrize(i) { f.prizes.splice(i, 1); if (!f.prizes.length) addPrize(); }
-function toggleProduct(id) {
-  const i = f.productIds.indexOf(id);
-  if (i >= 0) f.productIds.splice(i, 1); else f.productIds.push(id);
+function isSelected(id) {
+  return f.products.some((x) => x.id === id);
 }
+function toggleProduct(p) {
+  const i = f.products.findIndex((x) => x.id === p.id);
+  if (i >= 0) f.products.splice(i, 1);
+  else f.products.push({ id: p.id, amount: p.price || '' }); // 关联即套用预设价
+}
+function amountModel(id) {
+  const it = f.products.find((x) => x.id === id);
+  return it ? it.amount : '';
+}
+function setAmount(id, v) {
+  const it = f.products.find((x) => x.id === id);
+  if (it) it.amount = v;
+}
+const productsTotal = computed(() =>
+  f.products.reduce((s, x) => s + (parseFloat(x.amount) || 0), 0)
+);
 async function pickImage(e, onUrl) {
   const file = e.target.files?.[0];
   e.target.value = '';
@@ -62,7 +80,7 @@ async function save() {
     lotteryEnabled: f.lotteryEnabled, teaEnabled: f.teaEnabled,
     teaRatingHours: Number(f.teaRatingHours) || 24,
     prizes: f.prizes.map((z) => ({ name: z.name, qty: Number(z.qty) || 1, image: z.image })),
-    productIds: f.productIds,
+    products: f.products.map((x) => ({ id: x.id, amount: x.amount })),
   };
   const res = isNew.value ? await admin.create(payload) : await admin.update(props.period.id, payload);
   saving.value = false;
@@ -134,21 +152,35 @@ async function save() {
         <input v-model="f.teaRatingHours" type="number" min="1" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:border-amber-500" />
       </label>
 
-      <p class="mt-4 text-sm font-medium text-slate-600">本期录入的下午茶商品（从商品库勾选）</p>
+      <div class="mt-4 flex items-center justify-between">
+        <p class="text-sm font-medium text-slate-600">本期录入的下午茶商品（从商品库勾选）</p>
+        <p v-if="f.products.length" class="text-sm font-semibold text-amber-700">本期金额合计 ¥{{ productsTotal }}</p>
+      </div>
       <p v-if="library.length === 0" class="mt-1 text-sm text-slate-400">商品库为空，请先到「商品库」添加。</p>
       <div class="mt-2 grid gap-2 sm:grid-cols-2">
-        <label v-for="p in library" :key="p.id"
-          class="flex cursor-pointer items-center gap-3 rounded-xl border bg-white p-2.5 transition"
-          :class="f.productIds.includes(p.id) ? 'border-amber-400 ring-1 ring-amber-300' : 'border-slate-200'">
-          <input type="checkbox" :checked="f.productIds.includes(p.id)" @change="toggleProduct(p.id)" class="h-4 w-4 rounded accent-amber-500" />
+        <div v-for="p in library" :key="p.id"
+          class="flex items-center gap-3 rounded-xl border bg-white p-2.5 transition"
+          :class="isSelected(p.id) ? 'border-amber-400 ring-1 ring-amber-300' : 'border-slate-200'">
+          <input type="checkbox" :checked="isSelected(p.id)" @change="toggleProduct(p)" class="h-4 w-4 shrink-0 cursor-pointer rounded accent-amber-500" />
           <div class="h-9 w-9 shrink-0 overflow-hidden rounded-md border border-slate-200 bg-slate-50">
             <img v-if="p.image" :src="assetUrl(p.image)" class="h-full w-full object-cover" alt="" />
             <div v-else class="grid h-full w-full place-items-center text-sm text-slate-300">🍰</div>
           </div>
-          <span class="truncate text-sm font-medium text-slate-700">{{ p.name }}</span>
-        </label>
+          <span class="min-w-0 flex-1 truncate text-sm font-medium text-slate-700">{{ p.name }}</span>
+          <div v-if="isSelected(p.id)" class="flex shrink-0 items-center gap-1">
+            <span class="text-xs text-slate-400">¥</span>
+            <input
+              :value="amountModel(p.id)"
+              @input="setAmount(p.id, $event.target.value)"
+              @focus="$event.target.select()"
+              type="text"
+              :placeholder="p.price || '金额'"
+              class="w-20 rounded-lg border border-amber-300 px-2 py-1 text-sm outline-none focus:border-amber-500"
+            />
+          </div>
+        </div>
       </div>
-      <p class="mt-2 text-xs text-amber-600">提示：保存后评分有效期从当前时间起重新计算。</p>
+      <p class="mt-2 text-xs text-amber-600">提示：勾选商品后会自动带入商品「预设价」，可直接点击金额框修改为实际金额；保存后评分有效期从当前时间起重新计算。</p>
     </div>
 
     <p v-if="error" class="mt-4 text-sm font-medium text-rose-600">{{ error }}</p>

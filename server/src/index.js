@@ -33,6 +33,14 @@ function getPeriodRow(id) {
   return db.prepare('SELECT * FROM periods WHERE id = ?').get(id);
 }
 
+// 某一期录入的商品（含本期实际金额），供后台表单回填
+function periodProductItems(periodId) {
+  return db
+    .prepare('SELECT product_id AS id, amount FROM period_products WHERE period_id = ? ORDER BY sort ASC')
+    .all(periodId)
+    .map((r) => ({ id: r.id, amount: r.amount ?? '' }));
+}
+
 function teaPayload(row, includeExtra) {
   if (!row.tea_enabled) return null;
   const ratingOpen = row.tea_close_at ? new Date(row.tea_close_at).getTime() > Date.now() : false;
@@ -292,10 +300,8 @@ app.get('/api/admin/periods/:id', adminAuth, (req, res) => {
   const row = getPeriodRow(req.params.id);
   if (!row) return res.status(404).json({ error: 'not_found' });
   const data = serializePeriod(row, { withResult: true, withEntries: true, teaExtra: true });
-  data.productIds = db
-    .prepare('SELECT product_id FROM period_products WHERE period_id = ? ORDER BY sort ASC')
-    .all(row.id)
-    .map((r) => r.product_id);
+  data.productItems = periodProductItems(row.id);
+  data.productIds = data.productItems.map((i) => i.id);
   res.json(data);
 });
 
@@ -320,11 +326,12 @@ app.post('/api/admin/periods', adminAuth, (req, res) => {
        VALUES (?, ?, ?, ?, 'open', ?, ?, ?, ?)`
     )
     .run(i.title, i.style, i.lotteryEnabled, i.teaEnabled, i.prizes, i.hours, i.closeAt, nowIso());
-  setPeriodProducts(info.lastInsertRowid, req.body?.productIds);
+  setPeriodProducts(info.lastInsertRowid, req.body?.products ?? req.body?.productIds);
   if (req.body?.activate) activatePeriod(info.lastInsertRowid);
   const row = getPeriodRow(info.lastInsertRowid);
-  const data = serializePeriod(row, { withResult: true, withEntries: true });
-  data.productIds = (req.body?.productIds || []).map(Number).filter(Boolean);
+  const data = serializePeriod(row, { withResult: true, withEntries: true, teaExtra: true });
+  data.productItems = periodProductItems(row.id);
+  data.productIds = data.productItems.map((i) => i.id);
   res.json(data);
 });
 
@@ -338,13 +345,12 @@ app.put('/api/admin/periods/:id', adminAuth, (req, res) => {
   db.prepare(
     `UPDATE periods SET title=?, style=?, lottery_enabled=?, tea_enabled=?, prizes=?, tea_rating_hours=?, tea_close_at=? WHERE id=?`
   ).run(i.title, i.style, i.lotteryEnabled, i.teaEnabled, i.prizes, keepHours, keepClose, row.id);
-  if (req.body?.productIds !== undefined) setPeriodProducts(row.id, req.body.productIds);
+  if (req.body?.products !== undefined || req.body?.productIds !== undefined)
+    setPeriodProducts(row.id, req.body.products ?? req.body.productIds);
   const updated = getPeriodRow(row.id);
-  const data = serializePeriod(updated, { withResult: true, withEntries: true });
-  data.productIds = db
-    .prepare('SELECT product_id FROM period_products WHERE period_id = ? ORDER BY sort ASC')
-    .all(row.id)
-    .map((r) => r.product_id);
+  const data = serializePeriod(updated, { withResult: true, withEntries: true, teaExtra: true });
+  data.productItems = periodProductItems(row.id);
+  data.productIds = data.productItems.map((i) => i.id);
   res.json(data);
 });
 

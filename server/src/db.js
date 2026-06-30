@@ -63,6 +63,7 @@ db.exec(`
     period_id  INTEGER NOT NULL,
     product_id INTEGER NOT NULL,
     sort       INTEGER NOT NULL DEFAULT 0,
+    amount     TEXT,   -- 本期该商品的「实际金额」，默认取商品预设价
     UNIQUE (period_id, product_id)
   );
 
@@ -90,6 +91,7 @@ function addColumnIfMissing(table, col, decl) {
 addColumnIfMissing('tea_products', 'channel', 'TEXT');
 addColumnIfMissing('tea_products', 'price', 'TEXT');
 addColumnIfMissing('tea_products', 'qty', 'INTEGER');
+addColumnIfMissing('period_products', 'amount', 'TEXT');
 
 export function nowIso() {
   return new Date().toISOString();
@@ -180,7 +182,7 @@ export function productRatings(periodId, productId) {
 export function productsForPeriod(periodId, includeExtra = false) {
   const rows = db
     .prepare(
-      `SELECT p.id, p.name, p.image, p.descr, p.channel, p.price, p.qty, pp.sort
+      `SELECT p.id, p.name, p.image, p.descr, p.channel, p.price, p.qty, pp.sort, pp.amount
        FROM period_products pp JOIN tea_products p ON p.id = pp.product_id
        WHERE pp.period_id = ? ORDER BY pp.sort ASC, pp.id ASC`
     )
@@ -195,19 +197,44 @@ export function productsForPeriod(periodId, includeExtra = false) {
     };
     if (includeExtra) {
       out.extra = { channel: p.channel || '', price: p.price || '', qty: p.qty ?? '' };
+      out.amount = p.amount ?? ''; // 本期实际金额（仅后台）
     }
     return out;
   });
 }
 
-// 同步某一期的商品列表
-export function setPeriodProducts(periodId, productIds) {
-  const ids = Array.isArray(productIds) ? [...new Set(productIds.map(Number).filter(Boolean))] : [];
+// 同步某一期的商品列表。items 可为 id 数组，或 [{id, amount}]（amount=本期实际金额，缺省取商品预设价）
+export function setPeriodProducts(periodId, items) {
+  const list = Array.isArray(items) ? items : [];
   db.prepare('DELETE FROM period_products WHERE period_id = ?').run(periodId);
   const ins = db.prepare(
-    'INSERT OR IGNORE INTO period_products (period_id, product_id, sort) VALUES (?, ?, ?)'
+    'INSERT OR IGNORE INTO period_products (period_id, product_id, sort, amount) VALUES (?, ?, ?, ?)'
   );
-  ids.forEach((pid, i) => ins.run(periodId, pid, i));
+  const getPrice = db.prepare('SELECT price FROM tea_products WHERE id = ?');
+  const seen = new Set();
+  let i = 0;
+  for (const it of list) {
+    const id = Number(typeof it === 'object' && it !== null ? it.id : it);
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    let amount = typeof it === 'object' && it !== null && it.amount != null && it.amount !== '' ? String(it.amount) : null;
+    if (amount == null) {
+      const p = getPrice.get(id);
+      amount = p && p.price ? p.price : null; // 默认套用商品预设价
+    }
+    ins.run(periodId, id, i++, amount);
+  }
+}
+
+// 某一期所有商品「实际金额」之和（用于账单自动计算）
+export function periodProductsTotal(periodId) {
+  const rows = db.prepare('SELECT amount FROM period_products WHERE period_id = ?').all(periodId);
+  let sum = 0;
+  for (const r of rows) {
+    const n = parseFloat(r.amount);
+    if (Number.isFinite(n)) sum += n;
+  }
+  return Math.round(sum * 100) / 100;
 }
 
 export function productInPeriod(periodId, productId) {
