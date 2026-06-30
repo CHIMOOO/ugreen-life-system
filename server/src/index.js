@@ -17,6 +17,7 @@ import {
   exportAll, importAll,
 } from './db.js';
 import { computeResult, normalizePrizes } from './lottery.js';
+import { toWebp } from './imagePipeline.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 41131;
@@ -329,6 +330,10 @@ app.put('/api/admin/config', adminAuth, (req, res) => {
   if (b.teaModuleEnabled !== undefined) setSetting('tea_module_enabled', b.teaModuleEnabled ? '1' : '0');
   if (b.billModuleEnabled !== undefined) setSetting('bill_module_enabled', b.billModuleEnabled ? '1' : '0');
   if (b.periodBillShow !== undefined) setSetting('period_bill_show', b.periodBillShow ? '1' : '0');
+  if (b.imageQuality !== undefined) {
+    const q = parseInt(b.imageQuality, 10);
+    if (Number.isFinite(q)) setSetting('image_quality', String(Math.min(100, Math.max(1, q))));
+  }
   res.json(getConfig());
 });
 
@@ -544,18 +549,29 @@ app.post('/api/admin/periods/:id/invalid', adminAuth, (req, res) => {
   res.json(serializePeriod(getPeriodRow(row.id), { withResult: true, withEntries: true, adminView: true }));
 });
 
-// 图片上传
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase().replace(/[^.a-z0-9]/g, '') || '.png';
-    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e6)}${ext}`);
-  },
-});
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
-app.post('/api/admin/upload', adminAuth, upload.single('file'), (req, res) => {
+// 图片上传：内存接收 → 统一转码为体积最小的 WebP（质量由系统设置 image_quality 决定，默认 90）。
+// 非图片或转码失败则按原文件落盘，保证不丢图。
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+
+function imageQuality() {
+  const n = parseInt(getSetting('image_quality'), 10);
+  return Number.isFinite(n) ? Math.min(100, Math.max(1, n)) : 90;
+}
+
+app.post('/api/admin/upload', adminAuth, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'no_file' });
-  res.json({ url: `/uploads/${req.file.filename}` });
+  const base = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+  const webp = await toWebp(req.file.buffer, imageQuality());
+  if (webp) {
+    const filename = `${base}.webp`;
+    fs.writeFileSync(path.join(uploadsDir, filename), webp);
+    return res.json({ url: `/uploads/${filename}` });
+  }
+  // 回退：原样保存（gif/svg 等不支持转码的格式，或转码异常时）
+  const ext = path.extname(req.file.originalname).toLowerCase().replace(/[^.a-z0-9]/g, '') || '.png';
+  const filename = `${base}${ext}`;
+  fs.writeFileSync(path.join(uploadsDir, filename), req.file.buffer);
+  res.json({ url: `/uploads/${filename}` });
 });
 
 // ================= 账单 =================

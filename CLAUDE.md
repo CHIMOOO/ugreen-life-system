@@ -57,6 +57,7 @@ computed: isDrawn, lotteryOn(=period.lotteryEnabled), teaOn(=period.teaEnabled &
   - `mask=false`（后台端）→ 返回期数真实开关；`teaExtra=true` 让商品带内部字段 + `amount`。
   - `bill` 始终下发 `{show, items, total}`；商品内部字段（渠道/价格/数量）按三个系统开关 `tea_show_channel/tea_show_price/tea_show_qty` **逐字段**决定是否在公开端出现（`extra`，可单独只开某一项）。
 - 开奖算法 `server/src/lottery.js#computeResult(entries, prizes, invalid)`：先算**全量抽取排名** `ranking`，再按奖品顺序分配、**跳过无效者顺延**。`steps`/`winners` 与无 invalid 时完全兼容。改算法务必保持 `result` 字段形状（前端 12 套都依赖）。
+- 图片上传 `POST /api/admin/upload`：multer 内存接收 → `server/src/imagePipeline.js#toWebp` 用 **@jsquash（纯 WASM，无原生依赖）** 把 jpeg/png/webp 统一转成体积最小的 **WebP**，质量由系统设置 `image_quality`（1-100，默认 90，后台「图片上传」可改）决定；gif/svg 等不支持的格式或转码失败时**按原文件落盘**（不丢图）。坑：Node 的 `fetch` 不支持 `file://`，而 @jsquash 默认用 fetch 加载随包 `.wasm`——`imagePipeline.js` 顶部打了个 `file://` fetch 补丁兜住，**不要删**；否则上传转码会以 `fetch failed` 失败（会自动回退原图，但就没压缩了）。
 - 鉴权：后台凭据 = `SHA-256('aiot-life::' + ADMIN_PASSWORD)`（盐 `ADMIN_SALT` 前后端写死一致）。前端登录前在本地算好哈希再发（`admin/src/api.js` 的 `hashPassword`，用 `js-sha256` 纯 JS 实现——HTTP 非安全上下文也能算，不依赖只在 HTTPS/localhost 才有的 `crypto.subtle`），**明文密码不出网**；该哈希即后续所有 `/api/admin/*` 的请求头 `x-admin-token`，后端 `adminAuth` 用 `crypto.timingSafeEqual` 恒定时比对。登录 `POST /api/admin/login` 收这个哈希（也兼容明文密码作回退，便于脚本）。改 `ADMIN_PASSWORD`（`server/.env`，启动带 `--env-file-if-exists=.env`）即换凭据；旧的 `ADMIN_TOKEN` 环境变量已废弃。改盐或哈希算法务必前后端同步改。
 
 ## 5. 约定

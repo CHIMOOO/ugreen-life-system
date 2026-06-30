@@ -7,6 +7,7 @@ const f = reactive({
   lotteryModuleEnabled: true, teaModuleEnabled: true,
   billModuleEnabled: true, periodBillShow: true,
   namePlaceholder: '', teaShowChannel: false, teaShowPrice: false, teaShowQty: false,
+  imageQuality: 90,
   rulesLottery: '', rulesTea: '',
 });
 const saving = ref(false);
@@ -163,9 +164,22 @@ const inputCls = 'mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 outli
       </div>
     </section>
 
-    <!-- ⑤ 趣味设置 -->
+    <!-- ⑤ 图片上传 -->
     <section class="rounded-2xl border border-slate-200 bg-white p-6">
-      <h3 class="text-base font-bold text-slate-800">⑤ 趣味设置</h3>
+      <h3 class="text-base font-bold text-slate-800">⑤ 图片上传</h3>
+      <p class="mt-0.5 text-xs text-slate-500">后台上传的图片会自动转成体积最小的 WebP 格式。下面是压缩质量：越高越清晰、体积越大；越低越省空间、越糊。推荐 80–90。</p>
+      <label class="mt-4 block max-w-md">
+        <span class="text-sm font-medium text-slate-600">压缩质量（1–100，默认 90）</span>
+        <div class="mt-2 flex items-center gap-4">
+          <input v-model.number="f.imageQuality" type="range" min="1" max="100" class="h-2 flex-1 accent-indigo-600" />
+          <input v-model.number="f.imageQuality" type="number" min="1" max="100" class="w-20 rounded-xl border border-slate-300 px-3 py-2 text-center outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" />
+        </div>
+      </label>
+    </section>
+
+    <!-- ⑥ 趣味设置 -->
+    <section class="rounded-2xl border border-slate-200 bg-white p-6">
+      <h3 class="text-base font-bold text-slate-800">⑥ 趣味设置</h3>
       <label class="mt-4 block max-w-md">
         <span class="text-sm font-medium text-slate-600">抽奖姓名输入框的占位提示</span>
         <input v-model="f.namePlaceholder" type="text" placeholder="例如：陈老板" :class="inputCls" />
@@ -175,7 +189,7 @@ const inputCls = 'mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 outli
     <!-- ⑥ 规则文案 -->
     <section class="rounded-2xl border border-slate-200 bg-white p-6">
       <div class="flex items-center justify-between">
-        <h3 class="text-base font-bold text-slate-800">⑥ 规则文案</h3>
+        <h3 class="text-base font-bold text-slate-800">⑦ 规则文案</h3>
         <button @click="restoreRules" class="rounded-lg bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600 hover:bg-slate-200">↺ 恢复服务器默认</button>
       </div>
       <label class="mt-4 block">
@@ -190,7 +204,7 @@ const inputCls = 'mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 outli
 
     <!-- ⑦ 数据备份 -->
     <section class="rounded-2xl border border-slate-200 bg-white p-6">
-      <h3 class="text-base font-bold text-slate-800">⑦ 数据备份</h3>
+      <h3 class="text-base font-bold text-slate-800">⑧ 数据备份</h3>
       <p class="mt-0.5 text-xs text-slate-500">导出全部后台数据（设置 / 期数 / 商品 / 账单 / 用户 / 指纹等）为 JSON；导入会覆盖现有数据。</p>
       <div class="mt-4 flex flex-wrap items-center gap-3">
         <button @click="exportData" class="rounded-xl bg-emerald-600 px-5 py-2 font-semibold text-white transition hover:bg-emerald-700">⬇ 导出数据</button>
