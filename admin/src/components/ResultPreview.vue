@@ -61,9 +61,9 @@ const winners = computed(() => props.result.winners || []);
 
     <!-- 全部参与者 -->
     <details class="mt-4">
-      <summary class="cursor-pointer text-sm font-medium text-slate-500">全部参与者（{{ result.sorted.length }} 人，按数字升序）</summary>
+      <summary class="cursor-pointer text-sm font-medium text-slate-500">全部参与者（{{ (result.sorted || []).length }} 人，按数字升序）</summary>
       <div class="mt-2 flex flex-wrap gap-1.5">
-        <span v-for="(e, i) in result.sorted" :key="i" class="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600">
+        <span v-for="(e, i) in (result.sorted || [])" :key="i" class="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600">
           {{ e.name }}·{{ e.number }}
         </span>
       </div>

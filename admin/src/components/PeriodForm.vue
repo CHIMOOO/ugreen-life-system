@@ -81,7 +81,7 @@ async function save() {
     lotteryEnabled: f.lotteryEnabled, teaEnabled: f.teaEnabled,
     teaRatingHours: Number(f.teaRatingHours) || 24,
     billShow: f.billShow,
-    prizes: f.prizes.map((z) => ({ name: z.name, qty: Number(z.qty) || 1, image: z.image })),
+    prizes: f.prizes.map((z) => ({ name: z.name.trim(), qty: Math.max(1, Math.floor(Number(z.qty)) || 1), image: z.image })),
     products: f.products.map((x) => ({ id: x.id, amount: x.amount })),
   };
   const res = isNew.value ? await admin.create(payload) : await admin.update(props.period.id, payload);
@@ -197,7 +197,7 @@ async function save() {
 
     <p v-if="error" class="mt-4 text-sm font-medium text-rose-600">{{ error }}</p>
     <div class="mt-6">
-      <button @click="save" :disabled="saving" class="rounded-xl bg-indigo-600 px-6 py-2.5 font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50">
+      <button @click="save" :disabled="saving || !f.title.trim()" class="rounded-xl bg-indigo-600 px-6 py-2.5 font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50">
         {{ saving ? '保存中…' : isNew ? '创建期数' : '保存修改' }}
       </button>
     </div>

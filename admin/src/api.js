@@ -23,7 +23,17 @@ async function req(path, { method = 'GET', body, isForm = false } = {}) {
     headers['Content-Type'] = 'application/json';
     payload = JSON.stringify(body);
   }
-  const res = await fetch(BASE + path, { method, headers, body: payload });
+  let res;
+  try {
+    res = await fetch(BASE + path, { method, headers, body: payload });
+  } catch {
+    return { ok: false, status: 0, data: null }; // 网络错误 / 后端不可达
+  }
+  if (res.status === 401 && path !== '/api/admin/login') {
+    clearToken();
+    if (typeof location !== 'undefined') location.reload(); // token 失效：清掉并回登录页，避免卡在后台
+    return { ok: false, status: 401, data: null };
+  }
   let data = null;
   try {
     data = await res.json();
@@ -57,7 +67,7 @@ export const admin = {
   billAuto: (id) => req('/api/admin/periods/' + id + '/bill-auto'),
   // 用户库（分页 + 按姓名搜索）
   users: ({ page = 1, q = '' } = {}) =>
-    req(`/api/admin/users?page=${page}&q=${encodeURIComponent(q)}`),
+    req(`/api/admin/users?page=${Number(page) || 1}&q=${encodeURIComponent(q)}`),
   userDetail: (name) => req('/api/admin/users/' + encodeURIComponent(name)),
   // 账单
   bills: () => req('/api/admin/bills'),

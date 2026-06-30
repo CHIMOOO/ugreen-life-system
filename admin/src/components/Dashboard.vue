@@ -141,7 +141,7 @@ onMounted(loadList);
           class="cursor-pointer rounded-xl border bg-white p-4 transition hover:border-indigo-300"
           :class="selectedId === p.id ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-200'">
           <div class="flex items-center justify-between">
-            <span class="rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">#{{ p.id }} · {{ STYLE_LABEL[p.style] }}</span>
+            <span class="rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">#{{ p.id }} · {{ STYLE_LABEL[p.style] || p.style }}</span>
             <span v-if="p.isActive" class="rounded-full bg-indigo-600 px-2 py-0.5 text-xs font-semibold text-white">● 当前期</span>
             <span v-else class="rounded px-2 py-0.5 text-xs font-semibold" :class="p.status === 'drawn' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'">{{ p.status === 'drawn' ? '已开奖' : '进行中' }}</span>
           </div>

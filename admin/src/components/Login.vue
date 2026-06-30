@@ -9,6 +9,7 @@ const loading = ref(false);
 
 async function submit() {
   error.value = '';
+  if (!password.value) { error.value = '请输入密码'; return; }
   loading.value = true;
   const { ok, data } = await admin.login(password.value);
   loading.value = false;
@@ -16,7 +17,7 @@ async function submit() {
     setToken(data.token);
     emit('login');
   } else {
-    error.value = '密码错误';
+    error.value = data?.error === 'bad_password' ? '密码错误' : '登录失败，请稍后重试';
   }
 }
 </script>

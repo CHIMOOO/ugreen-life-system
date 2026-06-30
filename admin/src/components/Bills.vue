@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, reactive, onMounted, computed, watch } from 'vue';
 import { admin } from '../api.js';
 
 const ledger = ref({ items: [], income: 0, expense: 0, balance: 0, advance: 0 });
@@ -28,6 +28,7 @@ const PER = 10;
 const page = ref(1);
 const totalPages = computed(() => Math.max(1, Math.ceil(ledger.value.items.length / PER)));
 const pagedItems = computed(() => ledger.value.items.slice((page.value - 1) * PER, page.value * PER));
+watch(totalPages, (n) => { if (page.value > n) page.value = n; }); // 删到末页清空时回退页码，避免停在空白页
 
 function startNew() {
   Object.assign(editing, blank());
@@ -43,6 +44,7 @@ async function autoFill() {
 async function save() {
   error.value = '';
   if (!editing.title.trim()) { error.value = '请填写账单标题'; return; }
+  if (!(Number(editing.amount) > 0)) { error.value = '请填写正确的金额（大于 0）'; return; }
   saving.value = true;
   const body = {
     date: editing.date, title: editing.title.trim(), kind: editing.kind,

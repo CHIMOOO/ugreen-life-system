@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { admin } from '../api.js';
 
 const items = ref([]);
@@ -82,7 +82,6 @@ function fpView(f) {
     mem: c.deviceMemory,
   };
 }
-const grid = computed(() => items.value);
 </script>
 
 <template>
@@ -102,11 +101,11 @@ const grid = computed(() => items.value);
 
     <!-- 用户卡片网格 -->
     <div v-if="loading" class="grid h-48 place-items-center text-slate-400">加载中…</div>
-    <div v-else-if="grid.length === 0" class="grid h-48 place-items-center rounded-2xl border border-dashed border-slate-300 text-slate-400">
+    <div v-else-if="items.length === 0" class="grid h-48 place-items-center rounded-2xl border border-dashed border-slate-300 text-slate-400">
       {{ q ? '没有匹配的用户' : '还没有用户记录' }}
     </div>
     <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      <button v-for="u in grid" :key="u.name" @click="open(u.name)"
+      <button v-for="u in items" :key="u.name" @click="open(u.name)"
         class="group rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md">
         <div class="flex items-center gap-3">
           <div class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-lg font-bold text-white">
