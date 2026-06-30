@@ -104,7 +104,7 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
               <div class="mt-8 space-y-6">
                 <div>
                   <label class="mb-2 block font-cormorant text-lg font-medium text-bot-leaf">你的姓名</label>
-                  <input v-model="name" type="text" maxlength="30" placeholder="例如：阿狸"
+                  <input v-model="name" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
                     class="w-full rounded-2xl border border-bot-sage bg-white px-5 py-4 text-lg text-bot-ink placeholder-bot-sage/60 outline-none transition focus:border-bot-leaf focus:ring-2 focus:ring-bot-leaf/20" />
                 </div>
                 <div>

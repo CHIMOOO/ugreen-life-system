@@ -193,6 +193,7 @@ app.put('/api/admin/config', adminAuth, (req, res) => {
   const map = {
     departmentName: 'department_name',
     siteName: 'site_name',
+    namePlaceholder: 'name_placeholder',
     rulesLottery: 'rules_lottery',
     rulesTea: 'rules_tea',
   };

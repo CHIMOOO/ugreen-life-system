@@ -96,7 +96,7 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
               <div class="mt-8 space-y-6">
                 <div>
                   <label class="mb-2 block font-righteous uppercase tracking-[0.2em] text-retro-teal">你的姓名</label>
-                  <input v-model="name" type="text" maxlength="30" placeholder="例如：阿狸"
+                  <input v-model="name" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
                     class="w-full rounded-xl border-2 border-retro-brown bg-retro-bg px-5 py-4 text-lg font-semibold text-retro-ink placeholder-retro-brown/40 outline-none transition focus:border-retro-orange focus:ring-2 focus:ring-retro-orange/40" />
                 </div>
                 <div>

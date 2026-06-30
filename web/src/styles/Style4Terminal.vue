@@ -93,7 +93,7 @@ function asciiBar(rate) {
                   <label class="mb-1 block text-xs font-bold uppercase tracking-widest text-term-amber">姓名 / NAME</label>
                   <div class="flex items-stretch border border-term-dim bg-black focus-within:border-term-green focus-within:shadow-[0_0_12px_rgba(51,255,102,.4)]">
                     <span class="grid place-items-center px-3 text-term-green">&gt;</span>
-                    <input v-model="name" type="text" maxlength="30" placeholder="阿狸"
+                    <input v-model="name" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
                       class="w-full bg-transparent py-3 pr-4 text-term-green caret-term-green placeholder-term-dim/70 outline-none" />
                   </div>
                 </div>

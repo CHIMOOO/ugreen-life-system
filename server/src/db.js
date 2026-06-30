@@ -110,6 +110,7 @@ const DEFAULT_SETTINGS = {
   tea_show_extra: '0', // 下午茶商品的额外信息（渠道/价格/数量）是否对用户开放展示
   lottery_module_enabled: '1', // 系统级：是否开放抽奖模块（关闭后用户彻底看不到抽奖及其规则）
   tea_module_enabled: '1', // 系统级：是否开放下午茶评分模块
+  name_placeholder: '陈老板', // 趣味设置：抽奖姓名输入框的占位提示
   rules_lottery:
     '每人填写姓名与一个 1-9999 的幸运数字（姓名、数字均不可重复）。开奖时把所有幸运数字相加得到 S，参与人数为 N，余数 R = S mod N；把所有人按幸运数字从小到大排序，第 R+1 位即中奖。多个名额时抽出一位后移出奖池，对剩余的人重新求和取余，依次产生下一位。结果公开可复现。',
   rules_tea:
@@ -141,6 +142,7 @@ export function getConfig() {
     teaShowExtra: getSetting('tea_show_extra') === '1',
     lotteryModuleEnabled: getSetting('lottery_module_enabled') !== '0',
     teaModuleEnabled: getSetting('tea_module_enabled') !== '0',
+    namePlaceholder: getSetting('name_placeholder'),
     rulesLottery: getSetting('rules_lottery'),
     rulesTea: getSetting('rules_tea'),
   };

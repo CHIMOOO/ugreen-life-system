@@ -5,7 +5,7 @@ import { admin, STYLE_OPTIONS } from '../api.js';
 const f = reactive({
   departmentName: '', siteName: '', homeStyleMode: 'follow', homeFixedStyle: 'style1',
   lotteryModuleEnabled: true, teaModuleEnabled: true,
-  teaShowExtra: false, rulesLottery: '', rulesTea: '',
+  namePlaceholder: '', teaShowExtra: false, rulesLottery: '', rulesTea: '',
 });
 const saving = ref(false);
 const saved = ref(false);
@@ -73,6 +73,14 @@ const MODES = [
         <select v-model="f.homeFixedStyle" :disabled="f.homeStyleMode !== 'fixed'" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:border-indigo-500">
           <option v-for="s in STYLE_OPTIONS" :key="s.v" :value="s.v">{{ s.label }}</option>
         </select>
+      </label>
+    </div>
+
+    <div class="mt-5 rounded-xl bg-violet-50 p-4">
+      <p class="text-sm font-semibold text-violet-800">🎉 趣味设置</p>
+      <label class="mt-2 block max-w-md">
+        <span class="text-sm font-medium text-slate-600">抽奖姓名输入框的占位提示</span>
+        <input v-model="f.namePlaceholder" type="text" placeholder="例如：陈老板" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:border-violet-500" />
       </label>
     </div>
 
