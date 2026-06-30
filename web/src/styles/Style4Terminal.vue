@@ -15,10 +15,11 @@
  *
  * 每个 style 都渲染四块：① 头部 ② 抽奖 ③ 下午茶 ④ 规则。
  */
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { assetUrl } from '../api.js';
 import { useLotteryForm, stepExplain, winnersByPrize, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import DiceButton from '../components/DiceButton.vue';
+import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
 import { openZoom } from '../useImageZoom.js';
 
 const props = defineProps({
@@ -42,12 +43,21 @@ const prizeGroups = computed(() => (result.value ? winnersByPrize(result.value) 
 
 const { name, number, validate } = useLotteryForm();
 const localError = ref('');
+const showConfirm = ref(false); // 提交前的规则确认弹窗
+const pending = ref(null);
 function doSubmit() {
   localError.value = '';
   const r = validate();
   if (r.error) { localError.value = r.error; return; }
-  emit('submit', { name: r.name, number: r.number });
+  pending.value = { name: r.name, number: r.number };
+  showConfirm.value = true; // 先弹规则确认，确认后才真正提交
 }
+function confirmSubmit() {
+  if (props.submitting || !pending.value) return;
+  emit('submit', pending.value);
+}
+// 提交出错时关闭弹窗，让错误信息回到表单展示；成功则整块切到「已参与」自动卸载
+watch(() => props.submitState.status, (s) => { if (s === 'error') showConfirm.value = false; });
 const errorMsg = computed(() => localError.value || (props.submitState.status === 'error' ? props.submitState.message : ''));
 function doRate(productId, level) { emit('rate', { productId, level }); }
 
@@ -86,8 +96,8 @@ function asciiBar(rate) {
       <!-- ② 抽奖 -->
       <section v-if="lotteryOn" class="mt-10">
         <!-- 表单 -->
-        <div v-if="showForm" class="grid gap-6 lg:grid-cols-5">
-          <div class="lg:col-span-3">
+        <div v-if="showForm" class="space-y-10">
+          <div class="mx-auto w-full max-w-2xl">
             <div class="term-box bg-term-panel p-6 sm:p-8">
               <h2 class="text-xl font-bold uppercase text-term-green term-glow">[ 参与抽奖 ]</h2>
               <p class="mt-2 text-sm text-term-dim">// 填入姓名与幸运数字，开奖前对其他人保密</p>
@@ -118,15 +128,18 @@ function asciiBar(rate) {
                 </div>
                 <button :disabled="submitting" @click="doSubmit"
                   class="w-full border border-term-green bg-transparent py-3 text-sm font-bold uppercase tracking-widest text-term-green transition-colors hover:bg-term-green hover:text-term-bg disabled:cursor-not-allowed disabled:opacity-40">
-                  {{ submitting ? '> 提交中…' : '[ RUN ] > SUBMIT' }}
+                  [ RUN ] &gt; SUBMIT
                 </button>
               </div>
             </div>
+            <ConfirmSubmitDialog :open="showConfirm" :rules="config.rulesLottery" :submitting="submitting"
+              :name="pending?.name" :number="pending?.number" :accent="'#22c55e'"
+              @confirm="confirmSubmit" @cancel="showConfirm = false" />
           </div>
-          <div class="lg:col-span-2">
+          <div>
             <div class="term-box bg-term-panel p-5">
               <h3 class="text-lg font-bold uppercase text-term-amber">// 奖品 ls -l</h3>
-              <div class="mt-4 space-y-3">
+              <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div v-for="(z, i) in period.prizes" :key="i" class="overflow-hidden border border-term-line bg-black/40">
                   <button v-if="z.image" type="button" @click="openZoom(assetUrl(z.image))" class="block w-full cursor-zoom-in border-b border-term-dim">
                     <img :src="assetUrl(z.image)" class="h-40 w-full object-cover transition hover:brightness-110" :alt="z.name" />

@@ -15,10 +15,11 @@
  *
  * 同样渲染四块：① 头部 ② 抽奖 ③ 下午茶 ④ 规则。
  */
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { assetUrl } from '../api.js';
 import { useLotteryForm, stepExplain, winnersByPrize, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import DiceButton from '../components/DiceButton.vue';
+import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
 import { openZoom } from '../useImageZoom.js';
 
 const props = defineProps({
@@ -46,12 +47,21 @@ const prizeGroups = computed(() => (result.value ? winnersByPrize(result.value) 
 
 const { name, number, validate } = useLotteryForm();
 const localError = ref('');
+const showConfirm = ref(false); // 提交前的规则确认弹窗
+const pending = ref(null);
 function doSubmit() {
   localError.value = '';
   const r = validate();
   if (r.error) { localError.value = r.error; return; }
-  emit('submit', { name: r.name, number: r.number });
+  pending.value = { name: r.name, number: r.number };
+  showConfirm.value = true; // 先弹规则确认，确认后才真正提交
 }
+function confirmSubmit() {
+  if (props.submitting || !pending.value) return;
+  emit('submit', pending.value);
+}
+// 提交出错时关闭弹窗，让错误信息回到表单展示；成功则整块切到「已参与」自动卸载
+watch(() => props.submitState.status, (s) => { if (s === 'error') showConfirm.value = false; });
 const errorMsg = computed(() => localError.value || (props.submitState.status === 'error' ? props.submitState.message : ''));
 function doRate(productId, level) { emit('rate', { productId, level }); }
 </script>
@@ -91,8 +101,8 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
       <!-- ② 抽奖 -->
       <section v-if="lotteryOn" class="mt-12">
         <!-- 表单 -->
-        <div v-if="showForm" class="grid gap-8 lg:grid-cols-5">
-          <div class="lg:col-span-3">
+        <div v-if="showForm" class="space-y-10">
+          <div class="mx-auto w-full max-w-2xl">
             <div class="relative border-4 border-bau-ink bg-white p-6 shadow-bau-lg sm:p-10">
               <span aria-hidden="true" class="absolute -right-3 -top-3 h-8 w-8 rounded-full border-2 border-bau-ink bg-bau-red"></span>
               <div class="flex items-center gap-3">
@@ -121,17 +131,20 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
                 </div>
                 <button :disabled="submitting" @click="doSubmit"
                   class="w-full rounded-none border-4 border-bau-ink bg-bau-red px-10 py-5 text-lg font-black uppercase tracking-widest text-white shadow-bau-md transition-all duration-200 ease-out hover:-translate-y-1 active:translate-x-[3px] active:translate-y-[3px] active:shadow-none disabled:opacity-50">
-                  {{ submitting ? '提交中…' : '立即参与 ▶' }}
+                  立即参与 ▶
                 </button>
               </div>
             </div>
+            <ConfirmSubmitDialog :open="showConfirm" :rules="config.rulesLottery" :submitting="submitting"
+              :name="pending?.name" :number="pending?.number" :accent="'#1f6feb'"
+              @confirm="confirmSubmit" @cancel="showConfirm = false" />
           </div>
-          <div class="lg:col-span-2">
+          <div>
             <div class="flex items-center gap-3">
               <span class="h-7 w-7 rounded-full border-2 border-bau-ink bg-bau-yellow"></span>
               <h3 class="text-2xl font-black uppercase tracking-tight">奖品</h3>
             </div>
-            <div class="mt-5 space-y-5">
+            <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div v-for="(z, i) in period.prizes" :key="i"
                 class="overflow-hidden border-4 border-bau-ink bg-white shadow-bau-sm transition-transform duration-200 ease-out hover:-translate-y-1">
                 <button v-if="z.image" type="button" @click="openZoom(assetUrl(z.image))" class="block w-full cursor-zoom-in border-b-4 border-bau-ink">
