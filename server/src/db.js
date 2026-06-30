@@ -124,7 +124,9 @@ export const DEFAULT_SETTINGS = {
   site_name: 'AIoT客户端组生活系统',
   home_style_mode: 'follow', // follow | random | fixed
   home_fixed_style: 'style1',
-  tea_show_extra: '0', // 下午茶商品的额外信息（渠道/价格/数量）是否对用户开放展示
+  tea_show_channel: '0', // 下午茶商品「录入渠道」是否对用户展示
+  tea_show_price: '0', // 下午茶商品「价格」是否对用户展示
+  tea_show_qty: '0', // 下午茶商品「数量」是否对用户展示
   lottery_module_enabled: '1', // 系统级：是否开放抽奖模块（关闭后用户彻底看不到抽奖及其规则）
   tea_module_enabled: '1', // 系统级：是否开放下午茶评分模块
   name_placeholder: '陈老板', // 趣味设置：抽奖姓名输入框的占位提示
@@ -162,6 +164,9 @@ export function getConfig() {
     lotteryModuleEnabled: getSetting('lottery_module_enabled') !== '0',
     teaModuleEnabled: getSetting('tea_module_enabled') !== '0',
     namePlaceholder: getSetting('name_placeholder'),
+    teaShowChannel: getSetting('tea_show_channel') === '1',
+    teaShowPrice: getSetting('tea_show_price') === '1',
+    teaShowQty: getSetting('tea_show_qty') === '1',
     billModuleEnabled: getSetting('bill_module_enabled') !== '0',
     periodBillShow: getSetting('period_bill_show') !== '0',
     rulesLottery: getSetting('rules_lottery'),
@@ -197,8 +202,9 @@ export function productRatings(periodId, productId) {
   return { ...counts, total, goodRate };
 }
 
-// 某一期录入的商品（含统计）。includeExtra=true 时附带内部字段（渠道/价格/数量）。
-export function productsForPeriod(periodId, includeExtra = false) {
+// 某一期录入的商品（含统计）。opts 按字段控制是否附带内部信息（渠道/价格/数量）+ 本期金额。
+export function productsForPeriod(periodId, opts = {}) {
+  const { channel = false, price = false, qty = false, amount = false } = opts;
   const rows = db
     .prepare(
       `SELECT p.id, p.name, p.image, p.descr, p.channel, p.price, p.qty, pp.sort, pp.amount
@@ -214,10 +220,13 @@ export function productsForPeriod(periodId, includeExtra = false) {
       desc: p.descr || '',
       ratings: productRatings(periodId, p.id),
     };
-    if (includeExtra) {
-      out.extra = { channel: p.channel || '', price: p.price || '', qty: p.qty ?? '' };
-      out.amount = p.amount ?? ''; // 本期实际金额（仅后台）
+    if (channel || price || qty) {
+      out.extra = {};
+      if (channel) out.extra.channel = p.channel || '';
+      if (price) out.extra.price = p.price || '';
+      if (qty) out.extra.qty = p.qty ?? '';
     }
+    if (amount) out.amount = p.amount ?? ''; // 本期实际金额（仅后台）
     return out;
   });
 }

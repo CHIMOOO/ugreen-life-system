@@ -6,7 +6,8 @@ const f = reactive({
   departmentName: '', siteName: '', homeStyleMode: 'follow', homeFixedStyle: 'style1',
   lotteryModuleEnabled: true, teaModuleEnabled: true,
   billModuleEnabled: true, periodBillShow: true,
-  namePlaceholder: '', teaShowExtra: false, rulesLottery: '', rulesTea: '',
+  namePlaceholder: '', teaShowChannel: false, teaShowPrice: false, teaShowQty: false,
+  rulesLottery: '', rulesTea: '',
 });
 const saving = ref(false);
 const saved = ref(false);
@@ -98,13 +99,24 @@ const MODES = [
       </label>
     </div>
 
-    <label class="mt-5 flex items-start gap-3 rounded-xl bg-amber-50 p-4">
-      <input v-model="f.teaShowExtra" type="checkbox" class="mt-0.5 h-4 w-4 rounded accent-amber-500" />
-      <span>
-        <span class="text-sm font-medium text-slate-700">下午茶商品的内部信息对用户开放展示</span>
-        <span class="mt-0.5 block text-xs text-slate-500">勾选后，前台下午茶商品会显示「录入渠道 / 价格 / 数量」；不勾选则仅后台可见。这是统一开关，对所有商品生效。</span>
-      </span>
-    </label>
+    <div class="mt-5 rounded-xl bg-amber-50 p-4">
+      <p class="text-sm font-semibold text-amber-800">下午茶商品内部信息 · 对用户展示（逐项控制）</p>
+      <p class="mt-0.5 text-xs text-slate-500">分别勾选要在前台商品卡展示的字段；不勾选则仅后台可见。对所有商品统一生效。</p>
+      <div class="mt-3 flex flex-wrap gap-6">
+        <label class="inline-flex items-center gap-2">
+          <input v-model="f.teaShowChannel" type="checkbox" class="h-4 w-4 rounded accent-amber-500" />
+          <span class="text-sm font-medium text-slate-700">录入渠道</span>
+        </label>
+        <label class="inline-flex items-center gap-2">
+          <input v-model="f.teaShowPrice" type="checkbox" class="h-4 w-4 rounded accent-amber-500" />
+          <span class="text-sm font-medium text-slate-700">价格</span>
+        </label>
+        <label class="inline-flex items-center gap-2">
+          <input v-model="f.teaShowQty" type="checkbox" class="h-4 w-4 rounded accent-amber-500" />
+          <span class="text-sm font-medium text-slate-700">数量</span>
+        </label>
+      </div>
+    </div>
 
     <div class="mt-5 flex items-center justify-between">
       <span class="text-sm font-semibold text-slate-700">规则文案</span>

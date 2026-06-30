@@ -42,21 +42,32 @@ function periodProductItems(periodId) {
     .map((r) => ({ id: r.id, amount: r.amount ?? '' }));
 }
 
-function teaPayload(row, includeExtra) {
+function teaPayload(row, extraOpts) {
   if (!row.tea_enabled) return null;
   const ratingOpen = row.tea_close_at ? new Date(row.tea_close_at).getTime() > Date.now() : false;
   return {
     ratingHours: row.tea_rating_hours,
     closeAt: row.tea_close_at,
     ratingOpen,
-    products: productsForPeriod(row.id, includeExtra),
+    products: productsForPeriod(row.id, extraOpts),
+  };
+}
+
+// 公开端按系统逐字段开关决定商品内部信息曝光；后台端全开。
+function teaExtraOpts(adminView) {
+  if (adminView) return { channel: true, price: true, qty: true, amount: true };
+  return {
+    channel: getSetting('tea_show_channel') === '1',
+    price: getSetting('tea_show_price') === '1',
+    qty: getSetting('tea_show_qty') === '1',
+    amount: false,
   };
 }
 
 // 对外（公开 & 后台共用）的期数序列化。所有 style 共用同一份契约。
-// teaExtra: 是否在商品里附带内部字段（渠道/价格/数量）。公开端依系统设置，后台端恒为 true。
+// adminView: 后台端为 true（商品内部字段全开、含本期金额）；公开端为 false（按系统逐字段开关）。
 // mask: 公开端为 true，会用「系统级模块开关」遮蔽期数的抽奖/下午茶（关闭则用户彻底看不到，含规则）。后台端为 false，返回真实期数设置。
-function serializePeriod(row, { withResult = false, withEntries = false, teaExtra = false, mask = false } = {}) {
+function serializePeriod(row, { withResult = false, withEntries = false, adminView = false, mask = false } = {}) {
   const sysLottery = getSetting('lottery_module_enabled') !== '0';
   const sysTea = getSetting('tea_module_enabled') !== '0';
   const lotteryEnabled = mask ? sysLottery && !!row.lottery_enabled : !!row.lottery_enabled;
@@ -73,7 +84,7 @@ function serializePeriod(row, { withResult = false, withEntries = false, teaExtr
     prizes: normalizePrizes(JSON.parse(row.prizes || '[]')),
     participantCount: countEntries(row.id),
     result: null,
-    tea: teaEnabled ? teaPayload(row, teaExtra) : null,
+    tea: teaEnabled ? teaPayload(row, teaExtraOpts(adminView)) : null,
     bill: { show: billShowEffective(row), ...billsForPeriod(row.id) },
     billShow: row.bill_show || 'inherit',
     invalidNames: (() => {
@@ -111,7 +122,6 @@ function adminAuth(req, res, next) {
 }
 
 // 公开端是否展示商品内部字段（渠道/价格/数量）
-const publicTeaExtra = () => getSetting('tea_show_extra') === '1';
 
 // ================= 公开接口 =================
 
@@ -131,7 +141,7 @@ app.get('/api/config/defaults', (req, res) => {
 // 首页：当前进行中的那一期（全局至多一期）
 app.get('/api/active', (req, res) => {
   const row = getActivePeriodRow();
-  res.json({ period: row ? serializePeriod(row, { withResult: true, teaExtra: publicTeaExtra(), mask: true }) : null });
+  res.json({ period: row ? serializePeriod(row, { withResult: true, mask: true }) : null });
 });
 
 // 期数列表（轻量）
@@ -144,7 +154,7 @@ app.get('/api/periods', (req, res) => {
 app.get('/api/periods/:id', (req, res) => {
   const row = getPeriodRow(req.params.id);
   if (!row) return res.status(404).json({ error: 'not_found' });
-  res.json(serializePeriod(row, { withResult: true, teaExtra: publicTeaExtra(), mask: true }));
+  res.json(serializePeriod(row, { withResult: true, mask: true }));
 });
 
 // 提交抽奖：姓名 + 1~9999 幸运数字，姓名与数字均防重复。
@@ -234,7 +244,9 @@ app.put('/api/admin/config', adminAuth, (req, res) => {
   }
   if (['follow', 'random', 'fixed'].includes(b.homeStyleMode)) setSetting('home_style_mode', b.homeStyleMode);
   if (STYLE_KEYS.includes(b.homeFixedStyle)) setSetting('home_fixed_style', b.homeFixedStyle);
-  if (b.teaShowExtra !== undefined) setSetting('tea_show_extra', b.teaShowExtra ? '1' : '0');
+  if (b.teaShowChannel !== undefined) setSetting('tea_show_channel', b.teaShowChannel ? '1' : '0');
+  if (b.teaShowPrice !== undefined) setSetting('tea_show_price', b.teaShowPrice ? '1' : '0');
+  if (b.teaShowQty !== undefined) setSetting('tea_show_qty', b.teaShowQty ? '1' : '0');
   if (b.lotteryModuleEnabled !== undefined) setSetting('lottery_module_enabled', b.lotteryModuleEnabled ? '1' : '0');
   if (b.teaModuleEnabled !== undefined) setSetting('tea_module_enabled', b.teaModuleEnabled ? '1' : '0');
   if (b.billModuleEnabled !== undefined) setSetting('bill_module_enabled', b.billModuleEnabled ? '1' : '0');
@@ -319,13 +331,13 @@ app.delete('/api/admin/products/:id', adminAuth, (req, res) => {
 // ----- 期数 -----
 app.get('/api/admin/periods', adminAuth, (req, res) => {
   const rows = db.prepare('SELECT * FROM periods ORDER BY id DESC').all();
-  res.json(rows.map((r) => serializePeriod(r, { withResult: true, teaExtra: true })));
+  res.json(rows.map((r) => serializePeriod(r, { withResult: true, adminView: true })));
 });
 
 app.get('/api/admin/periods/:id', adminAuth, (req, res) => {
   const row = getPeriodRow(req.params.id);
   if (!row) return res.status(404).json({ error: 'not_found' });
-  const data = serializePeriod(row, { withResult: true, withEntries: true, teaExtra: true });
+  const data = serializePeriod(row, { withResult: true, withEntries: true, adminView: true });
   data.productItems = periodProductItems(row.id);
   data.productIds = data.productItems.map((i) => i.id);
   res.json(data);
@@ -356,7 +368,7 @@ app.post('/api/admin/periods', adminAuth, (req, res) => {
   setPeriodProducts(info.lastInsertRowid, req.body?.products ?? req.body?.productIds);
   if (req.body?.activate) activatePeriod(info.lastInsertRowid);
   const row = getPeriodRow(info.lastInsertRowid);
-  const data = serializePeriod(row, { withResult: true, withEntries: true, teaExtra: true });
+  const data = serializePeriod(row, { withResult: true, withEntries: true, adminView: true });
   data.productItems = periodProductItems(row.id);
   data.productIds = data.productItems.map((i) => i.id);
   res.json(data);
@@ -375,7 +387,7 @@ app.put('/api/admin/periods/:id', adminAuth, (req, res) => {
   if (req.body?.products !== undefined || req.body?.productIds !== undefined)
     setPeriodProducts(row.id, req.body.products ?? req.body.productIds);
   const updated = getPeriodRow(row.id);
-  const data = serializePeriod(updated, { withResult: true, withEntries: true, teaExtra: true });
+  const data = serializePeriod(updated, { withResult: true, withEntries: true, adminView: true });
   data.productItems = periodProductItems(row.id);
   data.productIds = data.productItems.map((i) => i.id);
   res.json(data);
@@ -427,7 +439,7 @@ app.post('/api/admin/periods/:id/reopen', adminAuth, (req, res) => {
   const row = getPeriodRow(req.params.id);
   if (!row) return res.status(404).json({ error: 'not_found' });
   db.prepare('UPDATE periods SET status = ?, result = NULL WHERE id = ?').run('open', row.id);
-  res.json(serializePeriod(getPeriodRow(row.id), { withResult: true, withEntries: true, teaExtra: true }));
+  res.json(serializePeriod(getPeriodRow(row.id), { withResult: true, withEntries: true, adminView: true }));
 });
 
 // 判定某人有效/无效；若已开奖则重算（无效者顺延，二名递补一名）
@@ -451,7 +463,7 @@ app.post('/api/admin/periods/:id/invalid', adminAuth, (req, res) => {
     const result = buildResult(getPeriodRow(row.id));
     db.prepare('UPDATE periods SET result = ? WHERE id = ?').run(JSON.stringify(result), row.id);
   }
-  res.json(serializePeriod(getPeriodRow(row.id), { withResult: true, withEntries: true, teaExtra: true }));
+  res.json(serializePeriod(getPeriodRow(row.id), { withResult: true, withEntries: true, adminView: true }));
 });
 
 // 图片上传
