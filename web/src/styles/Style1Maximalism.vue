@@ -18,6 +18,7 @@
 import { ref, computed } from 'vue';
 import { assetUrl } from '../api.js';
 import { useLotteryForm, stepExplain, winnersByPrize, TEA_LEVELS, teaExtraText } from '../useLottery.js';
+import DiceButton from '../components/DiceButton.vue';
 
 const props = defineProps({
   period: { type: Object, required: true },
@@ -90,8 +91,11 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
                 </div>
                 <div>
                   <label class="mb-2 block font-black uppercase tracking-widest text-max-tertiary">幸运数字 (1-9999)</label>
-                  <input v-model="number" type="number" min="1" max="9999" placeholder="例如：888"
-                    class="w-full rounded-full border-4 border-max-quaternary bg-max-muted/50 px-6 py-4 text-lg font-bold text-white placeholder-white/40 outline-none backdrop-blur-sm transition focus:border-max-tertiary focus:shadow-[0_0_24px_rgba(255,230,0,.5)]" />
+                  <div class="flex items-center gap-3">
+                    <input v-model="number" type="number" min="1" max="9999" placeholder="例如：888"
+                      class="min-w-0 flex-1 rounded-full border-4 border-max-quaternary bg-max-muted/50 px-6 py-4 text-lg font-bold text-white placeholder-white/40 outline-none backdrop-blur-sm transition focus:border-max-tertiary focus:shadow-[0_0_24px_rgba(255,230,0,.5)]" />
+                    <DiceButton @roll="(n) => (number = n)" class="shrink-0 text-max-tertiary" />
+                  </div>
                 </div>
                 <p v-if="errorMsg" class="rounded-2xl border-4 border-max-accent bg-max-accent/15 px-5 py-3 font-bold text-max-accent">⚠ {{ errorMsg }}</p>
                 <div v-if="nameStatus.exists" class="rounded-2xl border-4 border-max-tertiary bg-max-tertiary/15 px-5 py-3">

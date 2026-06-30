@@ -18,6 +18,7 @@
 import { ref, computed } from 'vue';
 import { assetUrl } from '../api.js';
 import { useLotteryForm, stepExplain, winnersByPrize, TEA_LEVELS, teaExtraText } from '../useLottery.js';
+import DiceButton from '../components/DiceButton.vue';
 
 const props = defineProps({
   period: { type: Object, required: true },
@@ -92,8 +93,11 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
                 </div>
                 <div>
                   <label class="mb-2 block font-orbitron text-xs font-bold uppercase tracking-[0.3em] text-cyber-yellow">幸运数字 // 1-9999</label>
-                  <input v-model="number" type="number" min="1" max="9999" placeholder="例如：888"
-                    class="w-full cyber-clip border border-cyber-yellow bg-black/60 px-5 py-4 font-mono text-lg text-cyber-yellow placeholder-cyber-fg/30 outline-none transition focus:shadow-[0_0_10px_rgba(249,240,2,.7),0_0_24px_rgba(249,240,2,.4)]" />
+                  <div class="flex items-center gap-3">
+                    <input v-model="number" type="number" min="1" max="9999" placeholder="例如：888"
+                      class="min-w-0 flex-1 cyber-clip border border-cyber-yellow bg-black/60 px-5 py-4 font-mono text-lg text-cyber-yellow placeholder-cyber-fg/30 outline-none transition focus:shadow-[0_0_10px_rgba(249,240,2,.7),0_0_24px_rgba(249,240,2,.4)]" />
+                    <DiceButton @roll="(n) => (number = n)" class="shrink-0 text-cyber-yellow" />
+                  </div>
                 </div>
                 <p v-if="errorMsg" class="cyber-clip border border-cyber-pink bg-cyber-pink/10 px-5 py-3 font-mono text-sm font-bold text-cyber-pink cyber-text-pink">! ERR // {{ errorMsg }}</p>
                 <div v-if="nameStatus.exists" class="cyber-clip border border-cyber-yellow/60 bg-cyber-yellow/10 px-5 py-3">

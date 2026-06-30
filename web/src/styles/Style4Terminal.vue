@@ -18,6 +18,7 @@
 import { ref, computed } from 'vue';
 import { assetUrl } from '../api.js';
 import { useLotteryForm, stepExplain, winnersByPrize, TEA_LEVELS, teaExtraText } from '../useLottery.js';
+import DiceButton from '../components/DiceButton.vue';
 
 const props = defineProps({
   period: { type: Object, required: true },
@@ -100,10 +101,13 @@ function asciiBar(rate) {
                 </div>
                 <div>
                   <label class="mb-1 block text-xs font-bold uppercase tracking-widest text-term-amber">幸运数字 / NUMBER (1-9999)</label>
-                  <div class="flex items-stretch border border-term-dim bg-black focus-within:border-term-green focus-within:shadow-[0_0_12px_rgba(51,255,102,.4)]">
-                    <span class="grid place-items-center px-3 text-term-green">&gt;</span>
-                    <input v-model="number" type="number" min="1" max="9999" placeholder="888"
-                      class="w-full bg-transparent py-3 pr-4 text-term-green caret-term-green placeholder-term-dim/70 outline-none" />
+                  <div class="flex items-center gap-3">
+                    <div class="flex min-w-0 flex-1 items-stretch border border-term-dim bg-black focus-within:border-term-green focus-within:shadow-[0_0_12px_rgba(51,255,102,.4)]">
+                      <span class="grid place-items-center px-3 text-term-green">&gt;</span>
+                      <input v-model="number" type="number" min="1" max="9999" placeholder="888"
+                        class="w-full bg-transparent py-3 pr-4 text-term-green caret-term-green placeholder-term-dim/70 outline-none" />
+                    </div>
+                    <DiceButton @roll="(n) => (number = n)" class="shrink-0 text-term-green" />
                   </div>
                 </div>
                 <p v-if="errorMsg" class="border border-term-red bg-term-red/10 px-4 py-2 text-sm font-bold text-term-red">ERROR: {{ errorMsg }}</p>

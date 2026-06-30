@@ -19,6 +19,7 @@
 import { ref, computed } from 'vue';
 import { assetUrl } from '../api.js';
 import { useLotteryForm, stepExplain, winnersByPrize, TEA_LEVELS, teaExtraText } from '../useLottery.js';
+import DiceButton from '../components/DiceButton.vue';
 
 const props = defineProps({
   period: { type: Object, required: true },
@@ -95,8 +96,11 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
                 </div>
                 <div>
                   <label class="mb-3 block text-xs font-semibold uppercase tracking-widest text-neu-muted">幸运数字 (1-9999)</label>
-                  <input v-model="number" type="number" min="1" max="9999" placeholder="例如：888"
-                    class="neu-pressed w-full rounded-2xl border-0 bg-neu-bg px-6 py-4 text-base font-medium text-neu-fg placeholder-neu-muted/60 outline-none transition focus:text-neu-accent" />
+                  <div class="flex items-center gap-3">
+                    <input v-model="number" type="number" min="1" max="9999" placeholder="例如：888"
+                      class="neu-pressed min-w-0 flex-1 rounded-2xl border-0 bg-neu-bg px-6 py-4 text-base font-medium text-neu-fg placeholder-neu-muted/60 outline-none transition focus:text-neu-accent" />
+                    <DiceButton @roll="(n) => (number = n)" class="shrink-0 text-neu-accent" />
+                  </div>
                 </div>
                 <p v-if="errorMsg" class="neu-pressed rounded-2xl px-5 py-3 text-sm font-medium text-rose-400">⚠ {{ errorMsg }}</p>
                 <div v-if="nameStatus.exists" class="neu-pressed rounded-2xl px-5 py-4">
