@@ -78,6 +78,24 @@ db.exec(`
     UNIQUE (period_id, product_id, client_id)
   );
 
+  -- 用户库（按姓名聚合，无需账号密码，仅供参考统计）
+  CREATE TABLE IF NOT EXISTS users (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT    NOT NULL UNIQUE,
+    created_at TEXT    NOT NULL,
+    updated_at TEXT    NOT NULL
+  );
+
+  -- 指纹采集：每次提交/评分/撤销都记一条，便于追溯
+  CREATE TABLE IF NOT EXISTS fingerprints (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT,
+    fp         TEXT,
+    kind       TEXT,   -- lottery | rating | cancel
+    period_id  INTEGER,
+    created_at TEXT    NOT NULL
+  );
+
   -- 账单流水（总账单）。kind: income 入账/收入，expense 支出/消费。可关联某一期。
   CREATE TABLE IF NOT EXISTS bills (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -107,6 +125,9 @@ addColumnIfMissing('tea_products', 'qty', 'INTEGER');
 addColumnIfMissing('period_products', 'amount', 'TEXT');
 addColumnIfMissing('periods', 'bill_show', "TEXT DEFAULT 'inherit'"); // inherit|on|off：本期账单是否展示
 addColumnIfMissing('periods', 'invalid_names', "TEXT DEFAULT '[]'"); // 被判无效的参与者（开奖后顺延用）
+addColumnIfMissing('tea_ratings', 'name', 'TEXT'); // 评分者姓名（来自浏览器存储，便于归入用户库）
+
+db.exec('CREATE INDEX IF NOT EXISTS idx_fp_name ON fingerprints(name); CREATE INDEX IF NOT EXISTS idx_ratings_name ON tea_ratings(name);');
 
 export function nowIso() {
   return new Date().toISOString();
@@ -315,6 +336,59 @@ export function billsForPeriod(periodId) {
   let total = 0;
   for (const b of rows) total += b.kind === 'income' ? -b.amount : b.amount; // 本期净支出
   return { items: rows.map(billRow), total: round2(total) };
+}
+
+// ---------- 用户库 & 指纹 ----------
+
+export function upsertUser(name) {
+  const nm = String(name || '').trim();
+  if (!nm) return;
+  db.prepare(
+    `INSERT INTO users (name, created_at, updated_at) VALUES (?, ?, ?)
+     ON CONFLICT(name) DO UPDATE SET updated_at = excluded.updated_at`
+  ).run(nm, nowIso(), nowIso());
+}
+
+export function recordFingerprint(name, fp, kind, periodId) {
+  db.prepare(
+    'INSERT INTO fingerprints (name, fp, kind, period_id, created_at) VALUES (?, ?, ?, ?, ?)'
+  ).run(String(name || '').trim() || null, String(fp || ''), kind, periodId ?? null, nowIso());
+}
+
+// 用户列表（聚合各模块次数）
+export function listUsers() {
+  const rows = db.prepare('SELECT name, updated_at FROM users ORDER BY updated_at DESC').all();
+  return rows.map((u) => ({
+    name: u.name,
+    updatedAt: u.updated_at,
+    lotteryCount: db.prepare('SELECT COUNT(*) c FROM entries WHERE name = ?').get(u.name).c,
+    ratingCount: db.prepare('SELECT COUNT(*) c FROM tea_ratings WHERE name = ?').get(u.name).c,
+    fpCount: db.prepare('SELECT COUNT(*) c FROM fingerprints WHERE name = ?').get(u.name).c,
+  }));
+}
+
+// 单个用户详情：抽奖数字 / 各商品评分次数 / 指纹历史
+export function userDetail(name) {
+  const nm = String(name || '').trim();
+  if (!db.prepare('SELECT 1 FROM users WHERE name = ?').get(nm)) return null;
+  const lottery = db
+    .prepare(
+      `SELECT e.period_id AS periodId, p.title AS periodTitle, e.number, e.created_at AS createdAt
+       FROM entries e LEFT JOIN periods p ON p.id = e.period_id
+       WHERE e.name = ? ORDER BY e.id DESC`
+    )
+    .all(nm);
+  const ratings = db
+    .prepare(
+      `SELECT pr.name AS product, COUNT(*) AS count
+       FROM tea_ratings r JOIN tea_products pr ON pr.id = r.product_id
+       WHERE r.name = ? GROUP BY r.product_id ORDER BY count DESC`
+    )
+    .all(nm);
+  const fingerprints = db
+    .prepare('SELECT fp, kind, period_id AS periodId, created_at AS createdAt FROM fingerprints WHERE name = ? ORDER BY id DESC')
+    .all(nm);
+  return { name: nm, lottery, ratings, fingerprints };
 }
 
 // 本期账单是否展示：期数级 bill_show（inherit|on|off）覆盖系统级 period_bill_show

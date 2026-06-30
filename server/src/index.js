@@ -12,6 +12,7 @@ import {
   productsForPeriod, productRatings, setPeriodProducts, productInPeriod, periodProductsTotal,
   activatePeriod, getActivePeriodRow,
   ledger, billsForPeriod, billShowEffective,
+  upsertUser, recordFingerprint, listUsers, userDetail,
 } from './db.js';
 import { computeResult, normalizePrizes } from './lottery.js';
 
@@ -186,6 +187,8 @@ app.post('/api/periods/:id/entries', (req, res) => {
   } catch {
     return res.status(400).json({ error: 'duplicate' });
   }
+  upsertUser(name);
+  recordFingerprint(name, req.body?.fingerprint, 'lottery', row.id);
   res.json({ ok: true, participantCount: countEntries(row.id) });
 });
 
@@ -208,14 +211,17 @@ app.post('/api/periods/:id/tea', (req, res) => {
   const open = row.tea_close_at && new Date(row.tea_close_at).getTime() > Date.now();
   if (!open) return res.status(400).json({ error: 'rating_closed' });
 
+  const raterName = (req.body?.name ?? '').toString().trim();
   try {
     db.prepare(
-      'INSERT INTO tea_ratings (period_id, product_id, client_id, level, created_at) VALUES (?, ?, ?, ?, ?)'
-    ).run(row.id, productId, clientId, level, nowIso());
+      'INSERT INTO tea_ratings (period_id, product_id, client_id, level, name, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(row.id, productId, clientId, level, raterName || null, nowIso());
   } catch {
     // UNIQUE(period, product, client) -> 已评过，防止重复刷
     return res.status(409).json({ error: 'already_voted', ratings: productRatings(row.id, productId) });
   }
+  if (raterName) upsertUser(raterName);
+  recordFingerprint(raterName, req.body?.fingerprint, 'rating', row.id);
   res.json({ ok: true, ratings: productRatings(row.id, productId) });
 });
 
@@ -532,6 +538,14 @@ app.delete('/api/admin/bills/:id', adminAuth, (req, res) => {
 // 账单自动计算：某期商品「实际金额」合计
 app.get('/api/admin/periods/:id/bill-auto', adminAuth, (req, res) => {
   res.json({ total: periodProductsTotal(Number(req.params.id)) });
+});
+
+// ================= 用户库 =================
+app.get('/api/admin/users', adminAuth, (req, res) => res.json(listUsers()));
+app.get('/api/admin/users/:name', adminAuth, (req, res) => {
+  const d = userDetail(decodeURIComponent(req.params.name));
+  if (!d) return res.status(404).json({ error: 'not_found' });
+  res.json(d);
 });
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));

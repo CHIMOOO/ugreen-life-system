@@ -6,6 +6,7 @@ import ResultPreview from './ResultPreview.vue';
 import Products from './Products.vue';
 import Settings from './Settings.vue';
 import Bills from './Bills.vue';
+import UserManagement from './UserManagement.vue';
 
 const emit = defineEmits(['logout']);
 
@@ -118,7 +119,7 @@ onMounted(loadList);
         <h1 class="text-lg font-bold text-slate-800">生活系统 · 管理后台</h1>
       </div>
       <div class="flex items-center gap-1">
-        <button v-for="t in [['periods','期数管理'],['products','商品库'],['bills','账单'],['settings','系统设置']]" :key="t[0]"
+        <button v-for="t in [['periods','期数管理'],['products','商品库'],['bills','账单'],['users','用户管理'],['settings','系统设置']]" :key="t[0]"
           @click="tab = t[0]"
           class="rounded-lg px-4 py-1.5 text-sm font-medium transition"
           :class="tab === t[0] ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-100'">{{ t[1] }}</button>
@@ -129,6 +130,7 @@ onMounted(loadList);
     <!-- 商品库 / 系统设置 -->
     <div v-if="tab === 'products'" class="mx-auto max-w-7xl p-6"><Products /></div>
     <div v-else-if="tab === 'bills'" class="mx-auto max-w-7xl p-6"><Bills /></div>
+    <div v-else-if="tab === 'users'" class="mx-auto max-w-7xl p-6"><UserManagement /></div>
     <div v-else-if="tab === 'settings'" class="mx-auto max-w-3xl p-6"><Settings /></div>
 
     <!-- 期数管理 -->

@@ -53,6 +53,9 @@ export const admin = {
   activate: (id) => req('/api/admin/periods/' + id + '/activate', { method: 'POST', body: {} }),
   deactivate: (id) => req('/api/admin/periods/' + id + '/deactivate', { method: 'POST', body: {} }),
   billAuto: (id) => req('/api/admin/periods/' + id + '/bill-auto'),
+  // 用户库
+  users: () => req('/api/admin/users'),
+  userDetail: (name) => req('/api/admin/users/' + encodeURIComponent(name)),
   // 账单
   bills: () => req('/api/admin/bills'),
   createBill: (b) => req('/api/admin/bills', { method: 'POST', body: b }),

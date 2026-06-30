@@ -35,9 +35,25 @@ export function winnersByPrize(result) {
   return [...map.values()];
 }
 
+// 姓名记忆：用户填过一次后存浏览器，之后各页自动回填
+export function getStoredName() {
+  try {
+    return localStorage.getItem('user_name') || '';
+  } catch {
+    return '';
+  }
+}
+export function setStoredName(name) {
+  try {
+    localStorage.setItem('user_name', String(name || '').trim());
+  } catch {
+    /* ignore */
+  }
+}
+
 // ---------- 抽奖表单 ----------
 export function useLotteryForm() {
-  const name = ref('');
+  const name = ref(getStoredName()); // 自动回填上次填写的姓名
   const number = ref('');
   function validate() {
     const nm = String(name.value || '').trim();
