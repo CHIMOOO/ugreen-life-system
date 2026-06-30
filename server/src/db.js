@@ -416,16 +416,26 @@ export function recordFingerprint(name, client, kind, periodId, server) {
   ).run(String(name || '').trim() || null, fpStr, srv.ip || '', srv.ua || '', merged, kind, periodId ?? null, nowIso());
 }
 
-// 用户列表（聚合各模块次数）
-export function listUsers() {
-  const rows = db.prepare('SELECT name, updated_at FROM users ORDER BY updated_at DESC').all();
-  return rows.map((u) => ({
+// 用户列表（聚合各模块次数）。支持按姓名搜索 + 分页（默认每页 10）。
+export function listUsers({ page = 1, pageSize = 10, q = '' } = {}) {
+  const search = String(q || '').trim();
+  const where = search ? 'WHERE name LIKE ?' : '';
+  const likeArgs = search ? [`%${search}%`] : [];
+  const total = db.prepare(`SELECT COUNT(*) AS c FROM users ${where}`).get(...likeArgs).c;
+  const size = Math.max(1, pageSize);
+  const pages = Math.max(1, Math.ceil(total / size));
+  const p = Math.min(Math.max(1, Number(page) || 1), pages);
+  const rows = db
+    .prepare(`SELECT name, updated_at FROM users ${where} ORDER BY updated_at DESC LIMIT ? OFFSET ?`)
+    .all(...likeArgs, size, (p - 1) * size);
+  const items = rows.map((u) => ({
     name: u.name,
     updatedAt: u.updated_at,
     lotteryCount: db.prepare('SELECT COUNT(*) c FROM entries WHERE name = ?').get(u.name).c,
     ratingCount: db.prepare('SELECT COUNT(*) c FROM tea_ratings WHERE name = ?').get(u.name).c,
     fpCount: db.prepare('SELECT COUNT(*) c FROM fingerprints WHERE name = ?').get(u.name).c,
   }));
+  return { items, total, page: p, pageSize: size, pages };
 }
 
 // 单个用户详情：抽奖数字 / 各商品评分次数 / 指纹历史

@@ -611,7 +611,11 @@ app.post('/api/admin/import', adminAuth, (req, res) => {
   }
 });
 
-app.get('/api/admin/users', adminAuth, (req, res) => res.json(listUsers()));
+app.get('/api/admin/users', adminAuth, (req, res) => res.json(listUsers({
+  page: Number(req.query.page) || 1,
+  pageSize: Math.min(Number(req.query.pageSize) || 10, 50),
+  q: (req.query.q ?? '').toString(),
+})));
 app.get('/api/admin/users/:name', adminAuth, (req, res) => {
   const d = userDetail(decodeURIComponent(req.params.name));
   if (!d) return res.status(404).json({ error: 'not_found' });
