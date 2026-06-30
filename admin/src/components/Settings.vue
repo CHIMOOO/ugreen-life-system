@@ -24,6 +24,11 @@ async function save() {
   if (ok) { saved.value = true; setTimeout(() => (saved.value = false), 2000); }
 }
 
+async function restoreRules() {
+  const { data } = await admin.configDefaults();
+  if (data) { f.rulesLottery = data.rulesLottery; f.rulesTea = data.rulesTea; }
+}
+
 const MODES = [
   { v: 'follow', label: '跟随当期（用当前期自己选的风格）' },
   { v: 'random', label: '随机（每次进入随机一种风格）' },
@@ -101,7 +106,11 @@ const MODES = [
       </span>
     </label>
 
-    <label class="mt-5 block">
+    <div class="mt-5 flex items-center justify-between">
+      <span class="text-sm font-semibold text-slate-700">规则文案</span>
+      <button @click="restoreRules" class="rounded-lg bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600 hover:bg-slate-200">↺ 恢复服务器默认文案</button>
+    </div>
+    <label class="mt-2 block">
       <span class="text-sm font-medium text-slate-600">抽奖规则文案</span>
       <textarea v-model="f.rulesLottery" rows="4" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:border-indigo-500"></textarea>
     </label>

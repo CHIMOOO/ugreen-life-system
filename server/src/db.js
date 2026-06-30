@@ -119,7 +119,7 @@ export const STYLE_KEYS = [
   'style7', 'style8', 'style9', 'style10', 'style11', 'style12',
 ];
 
-const DEFAULT_SETTINGS = {
+export const DEFAULT_SETTINGS = {
   department_name: 'AIoT客户端组',
   site_name: 'AIoT客户端组生活系统',
   home_style_mode: 'follow', // follow | random | fixed
@@ -131,7 +131,7 @@ const DEFAULT_SETTINGS = {
   bill_module_enabled: '1', // 系统级：首页是否显示「总账单」模块
   period_bill_show: '1', // 系统级：默认是否在下午茶里显示「本期账单」（期数可覆盖）
   rules_lottery:
-    '每人填写姓名与一个 1-9999 的幸运数字（姓名、数字均不可重复）。开奖时把所有幸运数字相加得到 S，参与人数为 N，余数 R = S mod N；把所有人按幸运数字从小到大排序，第 R+1 位即中奖。多个名额时抽出一位后移出奖池，对剩余的人重新求和取余，依次产生下一位。结果公开可复现。',
+    '每人填写姓名与一个 1-9999 的幸运数字（姓名、数字均不可重复）。⚠ 一个名字只能提交一次，请勿冒用他人姓名或重复提交，重复提交将导致本次抽奖无效。开奖时把所有幸运数字相加得到 S，参与人数为 N，余数 R = S mod N；把所有人按幸运数字从小到大排序，第 R+1 位即中奖。多个名额时抽出一位后移出奖池，对剩余的人重新求和取余，依次产生下一位。结果公开可复现。',
   rules_tea:
     '每期下午茶包含若干商品，可对每个商品做「不推荐 / 还行 / 推荐」三档评分。每个浏览器对每个商品只能评一次（可把当期所有商品都评一遍）。好评率 =（推荐 + 还行）÷ 总票数。',
 };

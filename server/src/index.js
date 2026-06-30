@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import {
-  db, nowIso, STYLE_KEYS,
+  db, nowIso, STYLE_KEYS, DEFAULT_SETTINGS,
   getConfig, getSetting, setSetting,
   countEntries, listEntries,
   productsForPeriod, productRatings, setPeriodProducts, productInPeriod, periodProductsTotal,
@@ -118,6 +118,14 @@ const publicTeaExtra = () => getSetting('tea_show_extra') === '1';
 // 系统配置（站点名、部门名、规则、首页风格模式）
 app.get('/api/config', (req, res) => {
   res.json(getConfig());
+});
+
+// 规则文案的服务器默认预设（用于后台「恢复默认」）
+app.get('/api/config/defaults', (req, res) => {
+  res.json({
+    rulesLottery: DEFAULT_SETTINGS.rules_lottery,
+    rulesTea: DEFAULT_SETTINGS.rules_tea,
+  });
 });
 
 // 首页：当前进行中的那一期（全局至多一期）
