@@ -216,15 +216,15 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
         </div>
       </section>
 
-      <!-- ④ 规则 -->
-      <section class="mb-12">
+      <!-- ④ 规则（按模块开关展示，关闭的模块连规则也不展示） -->
+      <section v-if="lotteryOn || teaOn" class="mb-12">
         <h2 class="font-unbounded text-3xl font-extrabold uppercase max-text-shadow-sm sm:text-4xl">📜 规则</h2>
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
-          <div class="rounded-3xl border-4 border-dashed border-max-quinary bg-max-muted/50 p-6 backdrop-blur-sm">
+          <div v-if="lotteryOn" class="rounded-3xl border-4 border-dashed border-max-quinary bg-max-muted/50 p-6 backdrop-blur-sm">
             <p class="font-black uppercase text-max-accent">抽奖规则</p>
             <p class="mt-2 whitespace-pre-line leading-relaxed text-white/80">{{ config.rulesLottery }}</p>
           </div>
-          <div class="rounded-3xl border-4 border-dashed border-max-secondary bg-max-muted/50 p-6 backdrop-blur-sm">
+          <div v-if="teaOn" class="rounded-3xl border-4 border-dashed border-max-secondary bg-max-muted/50 p-6 backdrop-blur-sm">
             <p class="font-black uppercase text-max-tertiary">下午茶评分规则</p>
             <p class="mt-2 whitespace-pre-line leading-relaxed text-white/80">{{ config.rulesTea }}</p>
           </div>

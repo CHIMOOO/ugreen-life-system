@@ -45,6 +45,14 @@ export const STYLE_LABELS = {
 
 export const STYLE_KEYS = Object.keys(STYLE_COMPONENTS);
 
+// 期数风格也可设为 'random'：每次进入随机一种
+STYLE_LABELS.random = '随机';
+
+export function randomStyleKey() {
+  return STYLE_KEYS[Math.floor(Math.random() * STYLE_KEYS.length)];
+}
+
 export function resolveStyle(key) {
-  return STYLE_COMPONENTS[key] || Style1Maximalism;
+  const real = key === 'random' ? randomStyleKey() : key;
+  return STYLE_COMPONENTS[real] || Style1Maximalism;
 }

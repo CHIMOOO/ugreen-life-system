@@ -4,6 +4,7 @@ import { admin, STYLE_OPTIONS } from '../api.js';
 
 const f = reactive({
   departmentName: '', siteName: '', homeStyleMode: 'follow', homeFixedStyle: 'style1',
+  lotteryModuleEnabled: true, teaModuleEnabled: true,
   teaShowExtra: false, rulesLottery: '', rulesTea: '',
 });
 const saving = ref(false);
@@ -43,6 +44,21 @@ const MODES = [
         <span class="text-sm font-medium text-slate-600">系统名称</span>
         <input v-model="f.siteName" type="text" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:border-indigo-500" />
       </label>
+    </div>
+
+    <div class="mt-5 rounded-xl bg-slate-50 p-4">
+      <p class="text-sm font-semibold text-slate-700">模块开关（系统级，影响主页与所有期数）</p>
+      <p class="mt-0.5 text-xs text-slate-500">关闭后用户彻底看不到相关内容（含规则）。期数也可单独开关，最终展示 = 系统级 且 期数级 都开启。</p>
+      <div class="mt-3 flex flex-wrap gap-6">
+        <label class="inline-flex items-center gap-2">
+          <input v-model="f.lotteryModuleEnabled" type="checkbox" class="h-4 w-4 rounded accent-indigo-600" />
+          <span class="text-sm font-medium text-slate-700">开放抽奖模块</span>
+        </label>
+        <label class="inline-flex items-center gap-2">
+          <input v-model="f.teaModuleEnabled" type="checkbox" class="h-4 w-4 rounded accent-indigo-600" />
+          <span class="text-sm font-medium text-slate-700">开放下午茶评分模块</span>
+        </label>
+      </div>
     </div>
 
     <div class="mt-5 grid gap-5 md:grid-cols-2">

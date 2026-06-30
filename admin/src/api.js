@@ -60,6 +60,7 @@ export const admin = {
 };
 
 export const STYLE_OPTIONS = [
+  { v: 'random', label: '🎲 随机（每次进入随机一种风格）' },
   { v: 'style1', label: '极繁主义 · Maximalism' },
   { v: 'style2', label: '手绘随笔 · Sketch' },
   { v: 'style3', label: '包豪斯 · Bauhaus' },

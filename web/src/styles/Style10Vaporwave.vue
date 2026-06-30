@@ -228,14 +228,14 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
       </section>
 
       <!-- ④ 规则 -->
-      <section class="mb-12">
+      <section v-if="lotteryOn || teaOn" class="mb-12">
         <h2 class="font-orbitron text-2xl font-black uppercase tracking-[0.3em] vapor-chrome sm:text-3xl">A E S T H E T I C · 规则</h2>
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
-          <div class="rounded-2xl border border-dashed border-vapor-pink/60 bg-vapor-panel/50 p-6 backdrop-blur">
+          <div v-if="lotteryOn" class="rounded-2xl border border-dashed border-vapor-pink/60 bg-vapor-panel/50 p-6 backdrop-blur">
             <p class="font-orbitron font-black uppercase tracking-wider text-vapor-pink">抽奖规则</p>
             <p class="mt-2 whitespace-pre-line leading-relaxed text-vapor-fg/80">{{ config.rulesLottery }}</p>
           </div>
-          <div class="rounded-2xl border border-dashed border-vapor-cyan/60 bg-vapor-panel/50 p-6 backdrop-blur">
+          <div v-if="teaOn" class="rounded-2xl border border-dashed border-vapor-cyan/60 bg-vapor-panel/50 p-6 backdrop-blur">
             <p class="font-orbitron font-black uppercase tracking-wider text-vapor-cyan">下午茶评分规则</p>
             <p class="mt-2 whitespace-pre-line leading-relaxed text-vapor-fg/80">{{ config.rulesTea }}</p>
           </div>

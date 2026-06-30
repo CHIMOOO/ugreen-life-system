@@ -9,7 +9,7 @@ import Settings from './Settings.vue';
 const emit = defineEmits(['logout']);
 
 const STYLE_LABEL = {
-  style1: '极繁', style2: '手绘', style3: '包豪斯', style4: '终端', style5: 'Material',
+  random: '随机', style1: '极繁', style2: '手绘', style3: '包豪斯', style4: '终端', style5: 'Material',
   style6: '学院', style7: '赛博', style8: '几何', style9: '植物', style10: '蒸汽波',
   style11: '新拟态', style12: '复古',
 };

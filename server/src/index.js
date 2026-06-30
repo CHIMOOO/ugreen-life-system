@@ -45,21 +45,26 @@ function teaPayload(row, includeExtra) {
 }
 
 // 对外（公开 & 后台共用）的期数序列化。所有 style 共用同一份契约。
-// teaExtra: 是否在下午茶商品里附带内部字段（渠道/价格/数量）。公开端依系统设置，后台端恒为 true。
-function serializePeriod(row, { withResult = false, withEntries = false, teaExtra = false } = {}) {
+// teaExtra: 是否在商品里附带内部字段（渠道/价格/数量）。公开端依系统设置，后台端恒为 true。
+// mask: 公开端为 true，会用「系统级模块开关」遮蔽期数的抽奖/下午茶（关闭则用户彻底看不到，含规则）。后台端为 false，返回真实期数设置。
+function serializePeriod(row, { withResult = false, withEntries = false, teaExtra = false, mask = false } = {}) {
+  const sysLottery = getSetting('lottery_module_enabled') !== '0';
+  const sysTea = getSetting('tea_module_enabled') !== '0';
+  const lotteryEnabled = mask ? sysLottery && !!row.lottery_enabled : !!row.lottery_enabled;
+  const teaEnabled = mask ? sysTea && !!row.tea_enabled : !!row.tea_enabled;
   const data = {
     id: row.id,
     title: row.title,
     style: row.style,
-    lotteryEnabled: !!row.lottery_enabled,
-    teaEnabled: !!row.tea_enabled,
+    lotteryEnabled,
+    teaEnabled,
     isActive: !!row.is_active,
     status: row.status,
     createdAt: row.created_at,
     prizes: normalizePrizes(JSON.parse(row.prizes || '[]')),
     participantCount: countEntries(row.id),
     result: null,
-    tea: teaPayload(row, teaExtra),
+    tea: teaEnabled ? teaPayload(row, teaExtra) : null,
   };
   if (withResult && row.status === 'drawn' && row.result) {
     data.result = JSON.parse(row.result);
@@ -94,27 +99,28 @@ app.get('/api/config', (req, res) => {
 // 首页：当前进行中的那一期（全局至多一期）
 app.get('/api/active', (req, res) => {
   const row = getActivePeriodRow();
-  res.json({ period: row ? serializePeriod(row, { withResult: true, teaExtra: publicTeaExtra() }) : null });
+  res.json({ period: row ? serializePeriod(row, { withResult: true, teaExtra: publicTeaExtra(), mask: true }) : null });
 });
 
 // 期数列表（轻量）
 app.get('/api/periods', (req, res) => {
   const rows = db.prepare('SELECT * FROM periods ORDER BY id DESC').all();
-  res.json(rows.map((r) => serializePeriod(r)));
+  res.json(rows.map((r) => serializePeriod(r, { mask: true })));
 });
 
 // 单期完整数据（开奖后含 result）
 app.get('/api/periods/:id', (req, res) => {
   const row = getPeriodRow(req.params.id);
   if (!row) return res.status(404).json({ error: 'not_found' });
-  res.json(serializePeriod(row, { withResult: true, teaExtra: publicTeaExtra() }));
+  res.json(serializePeriod(row, { withResult: true, teaExtra: publicTeaExtra(), mask: true }));
 });
 
 // 提交抽奖：姓名 + 1~9999 幸运数字，姓名与数字均防重复。
 app.post('/api/periods/:id/entries', (req, res) => {
   const row = getPeriodRow(req.params.id);
   if (!row) return res.status(404).json({ error: 'not_found' });
-  if (!row.lottery_enabled) return res.status(400).json({ error: 'lottery_disabled' });
+  if (!row.lottery_enabled || getSetting('lottery_module_enabled') === '0')
+    return res.status(400).json({ error: 'lottery_disabled' });
   if (row.status !== 'open') return res.status(400).json({ error: 'closed' });
 
   const name = (req.body?.name ?? '').toString().trim();
@@ -145,7 +151,8 @@ app.post('/api/periods/:id/entries', (req, res) => {
 app.post('/api/periods/:id/tea', (req, res) => {
   const row = getPeriodRow(req.params.id);
   if (!row) return res.status(404).json({ error: 'not_found' });
-  if (!row.tea_enabled) return res.status(400).json({ error: 'tea_disabled' });
+  if (!row.tea_enabled || getSetting('tea_module_enabled') === '0')
+    return res.status(400).json({ error: 'tea_disabled' });
 
   const productId = Number(req.body?.productId);
   const level = (req.body?.level ?? '').toString();
@@ -195,6 +202,8 @@ app.put('/api/admin/config', adminAuth, (req, res) => {
   if (['follow', 'random', 'fixed'].includes(b.homeStyleMode)) setSetting('home_style_mode', b.homeStyleMode);
   if (STYLE_KEYS.includes(b.homeFixedStyle)) setSetting('home_fixed_style', b.homeFixedStyle);
   if (b.teaShowExtra !== undefined) setSetting('tea_show_extra', b.teaShowExtra ? '1' : '0');
+  if (b.lotteryModuleEnabled !== undefined) setSetting('lottery_module_enabled', b.lotteryModuleEnabled ? '1' : '0');
+  if (b.teaModuleEnabled !== undefined) setSetting('tea_module_enabled', b.teaModuleEnabled ? '1' : '0');
   res.json(getConfig());
 });
 
@@ -291,7 +300,7 @@ app.get('/api/admin/periods/:id', adminAuth, (req, res) => {
 
 function readPeriodInput(body) {
   const title = (body?.title ?? '').toString().trim();
-  const style = STYLE_KEYS.includes(body?.style) ? body.style : 'style1';
+  const style = body?.style === 'random' || STYLE_KEYS.includes(body?.style) ? body.style : 'style1';
   const lotteryEnabled = body?.lotteryEnabled ? 1 : 0;
   const teaEnabled = body?.teaEnabled ? 1 : 0;
   const prizes = JSON.stringify(normalizePrizes(body?.prizes));
