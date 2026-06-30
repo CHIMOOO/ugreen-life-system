@@ -9,6 +9,7 @@
     "server": "npm --prefix server start",
     "web": "npm --prefix web run dev",
     "admin": "npm --prefix admin run dev",
+    "all": "node scripts/start-all.mjs",
     "build": "npm --prefix web run build && npm --prefix admin run build"
   }
 }
