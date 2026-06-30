@@ -1,39 +1,35 @@
 <script setup>
-// 摇骰子按钮：点击后骰子翻滚 + 数字快速滚动（老虎机），最后落定一个 1-9999 的随机数。
-// 通过 emit('roll', n) 持续把数字回传给父组件（绑定到幸运数字输入框）。
-import { ref } from 'vue';
+// 摇骰子按钮：点击随机一个 1-9999 的幸运数字，并把骰子点数换成一个随机面（1-6）做轻量反馈。
+// 无边框、无背景，骰子用 currentColor 绘制——自动继承各主题传入的文字色，兼容所有风格。
+// 不做翻滚/老虎机动画（仅保留 hover/按下的极轻微反馈）。
+import { ref, computed } from 'vue';
 
 const emit = defineEmits(['roll']);
-const rolling = ref(false);
+const face = ref(5);
 
-const rand = () => Math.floor(Math.random() * 9999) + 1;
+const POS = { lo: 7.5, mid: 12, hi: 16.5 };
+const FACES = {
+  1: [['mid', 'mid']],
+  2: [['lo', 'lo'], ['hi', 'hi']],
+  3: [['lo', 'lo'], ['mid', 'mid'], ['hi', 'hi']],
+  4: [['lo', 'lo'], ['lo', 'hi'], ['hi', 'lo'], ['hi', 'hi']],
+  5: [['lo', 'lo'], ['lo', 'hi'], ['mid', 'mid'], ['hi', 'lo'], ['hi', 'hi']],
+  6: [['lo', 'lo'], ['lo', 'mid'], ['lo', 'hi'], ['hi', 'lo'], ['hi', 'mid'], ['hi', 'hi']],
+};
+const pips = computed(() => (FACES[face.value] || FACES[5]).map(([cx, cy]) => ({ x: POS[cx], y: POS[cy] })));
 
 function roll() {
-  if (rolling.value) return;
-  rolling.value = true;
-  let ticks = 0;
-  const total = 15;
-  const timer = setInterval(() => {
-    ticks += 1;
-    emit('roll', rand()); // 滚动中不断变化
-    if (ticks >= total) {
-      clearInterval(timer);
-      rolling.value = false; // 最后一帧即为落定值
-    }
-  }, 55);
+  face.value = Math.floor(Math.random() * 6) + 1; // 换一个骰子面（静态反馈，无动画）
+  emit('roll', Math.floor(Math.random() * 9999) + 1);
 }
 </script>
 
 <template>
-  <button
-    type="button"
-    @click="roll"
-    class="dice-btn"
-    :class="{ rolling }"
-    title="点我摇一个幸运数字"
-    aria-label="随机一个幸运数字"
-  >
-    <span class="dice">🎲</span>
+  <button type="button" @click="roll" class="dice-btn" title="点我摇一个幸运数字" aria-label="随机一个幸运数字">
+    <svg viewBox="0 0 24 24" class="dice-svg" fill="none" aria-hidden="true">
+      <rect x="2.5" y="2.5" width="19" height="19" rx="4.5" stroke="currentColor" stroke-width="1.8" />
+      <circle v-for="(p, i) in pips" :key="i" :cx="p.x" :cy="p.y" r="1.8" fill="currentColor" />
+    </svg>
   </button>
 </template>
 
@@ -41,32 +37,18 @@ function roll() {
 .dice-btn {
   display: inline-grid;
   place-items: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 9999px;
-  cursor: pointer;
-  border: 2px solid currentColor;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
   background: transparent;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
 }
-.dice-btn:hover { transform: translateY(-2px) scale(1.05); }
-.dice-btn:active { transform: scale(0.92); }
-.dice {
-  font-size: 1.5rem;
-  line-height: 1;
-  display: inline-block;
-  will-change: transform;
+.dice-svg {
+  width: 1.6rem;
+  height: 1.6rem;
+  transition: transform 0.12s ease, opacity 0.12s ease;
 }
-.dice-btn.rolling { box-shadow: 0 0 0 4px currentColor; opacity: 0.95; }
-.dice-btn.rolling .dice { animation: dice-tumble 0.85s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
-@keyframes dice-tumble {
-  0% { transform: rotate(0) scale(1); }
-  20% { transform: rotate(-30deg) scale(1.2) translateY(-5px); }
-  45% { transform: rotate(220deg) scale(1.3) translateY(-9px); }
-  70% { transform: rotate(430deg) scale(1.2) translateY(-5px); }
-  100% { transform: rotate(720deg) scale(1); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .dice-btn.rolling .dice { animation-duration: 0.2s; }
-}
+.dice-btn:hover .dice-svg { opacity: 0.7; }
+.dice-btn:active .dice-svg { transform: scale(0.9); }
 </style>
