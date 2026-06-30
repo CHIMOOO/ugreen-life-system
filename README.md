@@ -130,7 +130,7 @@ npm run all           # 一键同时启动 后端(41131)/前台(41132)/后台(41
 
 ## 配置项（环境变量）
 
-后端：`PORT`(41131) · `ADMIN_PASSWORD` · `ADMIN_TOKEN`。管理密码走 `server/.env`，`npm run server` 用 `--env-file-if-exists=.env` 自动加载。
+后端：`PORT`(41131) · `ADMIN_PASSWORD`。管理密码走 `server/.env`，`npm run server` 用 `--env-file-if-exists=.env` 自动加载。后台凭据由密码派生（`SHA-256(盐+密码)`），前端本地算哈希后放请求头 `x-admin-token`，明文密码不出网（旧的 `ADMIN_TOKEN` 变量已废弃）。
 前端（前后端不同域名时）：`VITE_API_BASE`（后端地址）· `VITE_WEB_BASE`（admin 用，前台地址）。
 
 ---

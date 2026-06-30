@@ -3,6 +3,7 @@ import cors from 'cors';
 import multer from 'multer';
 import path from 'node:path';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import {
@@ -20,7 +21,19 @@ import { computeResult, normalizePrizes } from './lottery.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 41131;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'choujiang-admin-secret';
+// 后台凭据 = SHA-256(固定盐 + 管理密码)。前端登录前在本地算好哈希再发送，明文密码绝不出网；
+// 该哈希即后续所有 /api/admin/* 请求头 x-admin-token，后端逐请求恒定时比对。改 ADMIN_PASSWORD 即换凭据。
+const ADMIN_SALT = 'aiot-life::';
+const adminHash = (pw) => crypto.createHash('sha256').update(ADMIN_SALT + String(pw ?? '')).digest('hex');
+const ADMIN_TOKEN = adminHash(ADMIN_PASSWORD);
+
+// 恒定时间比较，避免按字符早退泄漏信息（防时序攻击）
+function safeEqual(a, b) {
+  const ba = Buffer.from(String(a ?? ''));
+  const bb = Buffer.from(String(b ?? ''));
+  if (ba.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ba, bb);
+}
 
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 fs.mkdirSync(uploadsDir, { recursive: true });
@@ -151,7 +164,7 @@ function buildResult(row) {
 }
 
 function adminAuth(req, res, next) {
-  if (req.get('x-admin-token') === ADMIN_TOKEN) return next();
+  if (safeEqual(req.get('x-admin-token'), ADMIN_TOKEN)) return next();
   return res.status(401).json({ error: 'unauthorized' });
 }
 
@@ -284,9 +297,12 @@ app.post('/api/periods/:id/tea', (req, res) => {
 // ================= 后台接口 =================
 
 app.post('/api/admin/login', (req, res) => {
-  const password = (req.body?.password ?? '').toString();
-  if (password !== ADMIN_PASSWORD) return res.status(401).json({ error: 'bad_password' });
-  res.json({ token: ADMIN_TOKEN });
+  const provided = (req.body?.password ?? '').toString();
+  // 新前端发来的是 SHA-256(盐+密码)；为兼容旧前端/脚本，也接受明文密码。两者都不命中才算失败。
+  if (safeEqual(provided, ADMIN_TOKEN) || safeEqual(provided, ADMIN_PASSWORD)) {
+    return res.json({ token: ADMIN_TOKEN });
+  }
+  return res.status(401).json({ error: 'bad_password' });
 });
 
 // ----- 系统配置 -----

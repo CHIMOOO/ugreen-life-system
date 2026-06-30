@@ -1,4 +1,12 @@
 // 后台接口客户端。token 存于 localStorage，随请求头 x-admin-token 发送。
+import { sha256 } from 'js-sha256';
+
+// 与后端一致的固定盐。登录前在本地把密码算成 SHA-256(盐+密码) 再发送，明文密码绝不出网；
+// 该哈希同时作为后续所有请求头 x-admin-token。注意：纯 JS 实现，HTTP（非安全上下文）下也可用，
+// 不依赖仅在 HTTPS/localhost 才有的 window.crypto.subtle。
+const ADMIN_SALT = 'aiot-life::';
+export const hashPassword = (pw) => sha256(ADMIN_SALT + String(pw ?? ''));
+
 const BASE = import.meta.env.VITE_API_BASE || '';
 // 开发期前台在 41132；生产同源部署时构建前设 VITE_WEB_BASE=（空串）让链接走相对路径 /lottery/:id
 const _web = import.meta.env.VITE_WEB_BASE;
@@ -44,7 +52,7 @@ async function req(path, { method = 'GET', body, isForm = false } = {}) {
 }
 
 export const admin = {
-  login: (password) => req('/api/admin/login', { method: 'POST', body: { password } }),
+  login: (password) => req('/api/admin/login', { method: 'POST', body: { password: hashPassword(password) } }),
   // 系统配置
   getConfig: () => req('/api/admin/config'),
   saveConfig: (body) => req('/api/admin/config', { method: 'PUT', body }),
