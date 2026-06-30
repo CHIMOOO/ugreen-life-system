@@ -267,7 +267,7 @@ app.post('/api/periods/:id/tea', (req, res) => {
   const open = row.tea_close_at && new Date(row.tea_close_at).getTime() > Date.now();
   if (!open) return res.status(400).json({ error: 'rating_closed' });
 
-  const raterName = (req.body?.name ?? '').toString().trim();
+  const raterName = (req.body?.name ?? '').toString().trim().slice(0, 30); // 与抽奖入口一致地限长
   try {
     db.prepare(
       'INSERT INTO tea_ratings (period_id, product_id, client_id, level, name, created_at) VALUES (?, ?, ?, ?, ?, ?)'
@@ -593,7 +593,9 @@ app.delete('/api/admin/bills/:id', adminAuth, (req, res) => {
 
 // 账单自动计算：某期商品「实际金额」合计
 app.get('/api/admin/periods/:id/bill-auto', adminAuth, (req, res) => {
-  res.json({ total: periodProductsTotal(Number(req.params.id)) });
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'bad_id' });
+  res.json({ total: periodProductsTotal(id) });
 });
 
 // ================= 用户库 =================
@@ -617,7 +619,13 @@ app.get('/api/admin/users', adminAuth, (req, res) => res.json(listUsers({
   q: (req.query.q ?? '').toString(),
 })));
 app.get('/api/admin/users/:name', adminAuth, (req, res) => {
-  const d = userDetail(decodeURIComponent(req.params.name));
+  let name;
+  try {
+    name = decodeURIComponent(req.params.name);
+  } catch {
+    return res.status(400).json({ error: 'bad_name' });
+  }
+  const d = userDetail(name);
   if (!d) return res.status(404).json({ error: 'not_found' });
   res.json(d);
 });

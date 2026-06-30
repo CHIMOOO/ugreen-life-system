@@ -187,7 +187,6 @@ export function getConfig() {
     siteName: getSetting('site_name'),
     homeStyleMode: getSetting('home_style_mode'),
     homeFixedStyle: getSetting('home_fixed_style'),
-    teaShowExtra: getSetting('tea_show_extra') === '1',
     lotteryModuleEnabled: getSetting('lottery_module_enabled') !== '0',
     teaModuleEnabled: getSetting('tea_module_enabled') !== '0',
     namePlaceholder: getSetting('name_placeholder'),
@@ -328,10 +327,11 @@ export function importAll(data) {
   try {
     for (const t of [...BACKUP_TABLES].reverse()) db.exec(`DELETE FROM ${t}`);
     for (const t of BACKUP_TABLES) {
+      const valid = new Set(db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name));
       const rows = Array.isArray(tables[t]) ? tables[t] : [];
       let n = 0;
       for (const row of rows) {
-        const cols = Object.keys(row);
+        const cols = Object.keys(row).filter((c) => valid.has(c)); // 只导入本表真实存在的列，兼容跨版本备份
         if (!cols.length) continue;
         const ph = cols.map(() => '?').join(',');
         db.prepare(`INSERT INTO ${t} (${cols.join(',')}) VALUES (${ph})`).run(...cols.map((c) => row[c]));
@@ -410,7 +410,9 @@ export function recordFingerprint(name, client, kind, periodId, server) {
   }
   const srv = server && typeof server === 'object' ? server : {};
   const fpStr = [id, summary].filter(Boolean).join(' · ') || summary || '';
-  const merged = JSON.stringify({ id, summary, client: clientDetails, server: srv });
+  let merged = JSON.stringify({ id, summary, client: clientDetails, server: srv });
+  // 公开端可传任意大的 details，做个上限兜底，避免被塞超大 JSON 撑大库
+  if (merged.length > 20000) merged = JSON.stringify({ id, summary, truncated: true, server: srv });
   db.prepare(
     'INSERT INTO fingerprints (name, fp, ip, ua, details, kind, period_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(String(name || '').trim() || null, fpStr, srv.ip || '', srv.ua || '', merged, kind, periodId ?? null, nowIso());

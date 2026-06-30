@@ -55,7 +55,7 @@ computed: isDrawn, lotteryOn(=period.lotteryEnabled), teaOn(=period.teaEnabled &
 - `serializePeriod(row, {withResult, withEntries, teaExtra, mask})`：
   - `mask=true`（公开端 /api/active、/api/periods[/:id]）→ 用系统开关遮蔽 `lotteryEnabled/teaEnabled`，并据此决定 `tea` 是否下发。
   - `mask=false`（后台端）→ 返回期数真实开关；`teaExtra=true` 让商品带内部字段 + `amount`。
-  - `bill` 始终下发 `{show, items, total}`；商品内部字段（渠道/价格/数量）只有系统开关 `tea_show_extra` 开了才在公开端出现（`extra`）。
+  - `bill` 始终下发 `{show, items, total}`；商品内部字段（渠道/价格/数量）按三个系统开关 `tea_show_channel/tea_show_price/tea_show_qty` **逐字段**决定是否在公开端出现（`extra`，可单独只开某一项）。
 - 开奖算法 `server/src/lottery.js#computeResult(entries, prizes, invalid)`：先算**全量抽取排名** `ranking`，再按奖品顺序分配、**跳过无效者顺延**。`steps`/`winners` 与无 invalid 时完全兼容。改算法务必保持 `result` 字段形状（前端 12 套都依赖）。
 - 鉴权：请求头 `x-admin-token === ADMIN_TOKEN`。登录 `POST /api/admin/login` 用 `ADMIN_PASSWORD`（来自 `server/.env`，启动带 `--env-file-if-exists=.env`）。
 

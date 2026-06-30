@@ -2,8 +2,8 @@
 import { db, nowIso, setSetting, activatePeriod, setPeriodProducts } from './db.js';
 import { computeResult, normalizePrizes } from './lottery.js';
 
-db.exec('DELETE FROM entries; DELETE FROM tea_ratings; DELETE FROM period_products; DELETE FROM tea_products; DELETE FROM periods; DELETE FROM bills;');
-db.exec("DELETE FROM sqlite_sequence WHERE name IN ('periods','entries','tea_ratings','tea_products','period_products','bills');");
+db.exec('DELETE FROM entries; DELETE FROM tea_ratings; DELETE FROM period_products; DELETE FROM tea_products; DELETE FROM periods; DELETE FROM bills; DELETE FROM fingerprints; DELETE FROM users;');
+db.exec("DELETE FROM sqlite_sequence WHERE name IN ('periods','entries','tea_ratings','tea_products','period_products','bills','fingerprints','users');");
 
 // 系统配置
 setSetting('department_name', 'AIoT客户端组');
