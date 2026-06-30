@@ -30,7 +30,39 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' })); // 数据导入可能较大
 app.use('/uploads', express.static(uploadsDir));
 
+// 主动向浏览器索取 User-Agent Client Hints（高熵信号），后续请求会带上 sec-ch-ua-* 头，
+// 服务端据此补全前端 JS 拿不到/不稳定的信息（架构/机型/完整版本等）。
+const ACCEPT_CH = [
+  'Sec-CH-UA', 'Sec-CH-UA-Platform', 'Sec-CH-UA-Platform-Version', 'Sec-CH-UA-Mobile',
+  'Sec-CH-UA-Arch', 'Sec-CH-UA-Bitness', 'Sec-CH-UA-Model', 'Sec-CH-UA-Full-Version-List',
+].join(', ');
+app.use((req, res, next) => {
+  res.setHeader('Accept-CH', ACCEPT_CH);
+  res.setHeader('Critical-CH', ACCEPT_CH);
+  next();
+});
+
 // ---------- helpers ----------
+
+// 服务端补充的指纹信号：来源 IP、UA、语言、以及浏览器发来的 Client Hints 头。
+function serverSignals(req) {
+  const h = req.headers;
+  const xff = (h['x-forwarded-for'] || '').toString().split(',')[0].trim();
+  const ip = xff || req.socket?.remoteAddress || req.ip || '';
+  const hints = {};
+  for (const k of Object.keys(h)) {
+    if (k.startsWith('sec-ch-')) hints[k] = h[k];
+  }
+  return {
+    ip,
+    ua: h['user-agent'] || '',
+    acceptLanguage: h['accept-language'] || '',
+    acceptEncoding: h['accept-encoding'] || '',
+    referer: h['referer'] || '',
+    clientHints: hints,
+    serverTime: nowIso(),
+  };
+}
 
 function getPeriodRow(id) {
   return db.prepare('SELECT * FROM periods WHERE id = ?').get(id);
@@ -189,7 +221,7 @@ app.post('/api/periods/:id/entries', (req, res) => {
     return res.status(400).json({ error: 'duplicate' });
   }
   upsertUser(name);
-  recordFingerprint(name, req.body?.fingerprint, 'lottery', row.id);
+  recordFingerprint(name, req.body?.fingerprint, 'lottery', row.id, serverSignals(req));
   res.json({ ok: true, participantCount: countEntries(row.id) });
 });
 
@@ -211,7 +243,7 @@ app.post('/api/periods/:id/cancel', (req, res) => {
   const name = (req.body?.name ?? '').toString().trim();
   if (!name) return res.status(400).json({ error: 'name_required' });
   const exists = !!db.prepare('SELECT 1 FROM entries WHERE period_id = ? AND name = ?').get(row.id, name);
-  recordFingerprint(name, req.body?.fingerprint, 'cancel', row.id); // 无论是否命中都留痕
+  recordFingerprint(name, req.body?.fingerprint, 'cancel', row.id, serverSignals(req)); // 无论是否命中都留痕
   if (exists) db.prepare('DELETE FROM entries WHERE period_id = ? AND name = ?').run(row.id, name);
   res.json({ ok: true, canceled: exists, participantCount: countEntries(row.id) });
 });
@@ -245,7 +277,7 @@ app.post('/api/periods/:id/tea', (req, res) => {
     return res.status(409).json({ error: 'already_voted', ratings: productRatings(row.id, productId) });
   }
   if (raterName) upsertUser(raterName);
-  recordFingerprint(raterName, req.body?.fingerprint, 'rating', row.id);
+  recordFingerprint(raterName, req.body?.fingerprint, 'rating', row.id, serverSignals(req));
   res.json({ ok: true, ratings: productRatings(row.id, productId) });
 });
 

@@ -32,7 +32,7 @@ export function usePeriodShell(periodRef) {
     if (!p) return;
     submitting.value = true;
     submitState.value = { status: 'idle', message: '' };
-    const { ok, data } = await api.submit(p.id, { ...payload, fingerprint: getFingerprint() });
+    const { ok, data } = await api.submit(p.id, { ...payload, fingerprint: await getFingerprint() });
     submitting.value = false;
     if (ok && data?.ok) {
       p.participantCount = data.participantCount;
@@ -50,7 +50,7 @@ export function usePeriodShell(periodRef) {
     ratingBusy.value = { ...ratingBusy.value, [productId]: true };
     const { ok, status, data } = await api.rateTea(p.id, {
       productId, level, clientId: getClientId(),
-      name: getStoredName(), fingerprint: getFingerprint(),
+      name: getStoredName(), fingerprint: await getFingerprint(),
     });
     ratingBusy.value = { ...ratingBusy.value, [productId]: false };
     if ((ok || status === 409) && data?.ratings) {
@@ -83,7 +83,7 @@ export function usePeriodShell(periodRef) {
     const p = periodRef.value;
     const nm = String(name || '').trim();
     if (!p || !nm) return;
-    const { ok, data } = await api.cancelEntry(p.id, { name: nm, fingerprint: getFingerprint() });
+    const { ok, data } = await api.cancelEntry(p.id, { name: nm, fingerprint: await getFingerprint() });
     if (ok && data?.ok) {
       p.participantCount = data.participantCount;
       nameStatus.value = { exists: false, checking: false };

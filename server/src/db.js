@@ -90,7 +90,10 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS fingerprints (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     name       TEXT,
-    fp         TEXT,
+    fp         TEXT,   -- 指纹摘要（稳定 id · 概要），便于快速查看
+    ip         TEXT,   -- 服务端采集的来源 IP
+    ua         TEXT,   -- 服务端采集的 User-Agent
+    details    TEXT,   -- 全量信号 JSON（前端采集 + 服务端补充）
     kind       TEXT,   -- lottery | rating | cancel
     period_id  INTEGER,
     created_at TEXT    NOT NULL
@@ -126,6 +129,9 @@ addColumnIfMissing('period_products', 'amount', 'TEXT');
 addColumnIfMissing('periods', 'bill_show', "TEXT DEFAULT 'inherit'"); // inherit|on|off：本期账单是否展示
 addColumnIfMissing('periods', 'invalid_names', "TEXT DEFAULT '[]'"); // 被判无效的参与者（开奖后顺延用）
 addColumnIfMissing('tea_ratings', 'name', 'TEXT'); // 评分者姓名（来自浏览器存储，便于归入用户库）
+addColumnIfMissing('fingerprints', 'ip', 'TEXT'); // 指纹：服务端来源 IP
+addColumnIfMissing('fingerprints', 'ua', 'TEXT'); // 指纹：服务端 User-Agent
+addColumnIfMissing('fingerprints', 'details', 'TEXT'); // 指纹：全量信号 JSON
 
 db.exec('CREATE INDEX IF NOT EXISTS idx_fp_name ON fingerprints(name); CREATE INDEX IF NOT EXISTS idx_ratings_name ON tea_ratings(name);');
 
@@ -389,10 +395,25 @@ export function upsertUser(name) {
   ).run(nm, nowIso(), nowIso());
 }
 
-export function recordFingerprint(name, fp, kind, periodId) {
+// 记录一条指纹。client 可为前端采集对象 { id, summary, details } 或旧版字符串；
+// server 为服务端补充信号 { ip, ua, acceptLanguage, clientHints... }。
+export function recordFingerprint(name, client, kind, periodId, server) {
+  let id = '';
+  let summary = '';
+  let clientDetails = {};
+  if (client && typeof client === 'object') {
+    id = client.id || '';
+    summary = client.summary || '';
+    clientDetails = client.details && typeof client.details === 'object' ? client.details : client;
+  } else if (client != null && client !== '') {
+    summary = String(client);
+  }
+  const srv = server && typeof server === 'object' ? server : {};
+  const fpStr = [id, summary].filter(Boolean).join(' · ') || summary || '';
+  const merged = JSON.stringify({ id, summary, client: clientDetails, server: srv });
   db.prepare(
-    'INSERT INTO fingerprints (name, fp, kind, period_id, created_at) VALUES (?, ?, ?, ?, ?)'
-  ).run(String(name || '').trim() || null, String(fp || ''), kind, periodId ?? null, nowIso());
+    'INSERT INTO fingerprints (name, fp, ip, ua, details, kind, period_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(String(name || '').trim() || null, fpStr, srv.ip || '', srv.ua || '', merged, kind, periodId ?? null, nowIso());
 }
 
 // 用户列表（聚合各模块次数）
@@ -426,8 +447,17 @@ export function userDetail(name) {
     )
     .all(nm);
   const fingerprints = db
-    .prepare('SELECT fp, kind, period_id AS periodId, created_at AS createdAt FROM fingerprints WHERE name = ? ORDER BY id DESC')
-    .all(nm);
+    .prepare('SELECT fp, ip, ua, details, kind, period_id AS periodId, created_at AS createdAt FROM fingerprints WHERE name = ? ORDER BY id DESC')
+    .all(nm)
+    .map((f) => {
+      let details = null;
+      try {
+        details = f.details ? JSON.parse(f.details) : null;
+      } catch {
+        details = null;
+      }
+      return { fp: f.fp, ip: f.ip || '', ua: f.ua || '', details, kind: f.kind, periodId: f.periodId, createdAt: f.createdAt };
+    });
   return { name: nm, lottery, ratings, fingerprints };
 }
 
