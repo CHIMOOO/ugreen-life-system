@@ -30,6 +30,38 @@ async function restoreRules() {
   if (data) { f.rulesLottery = data.rulesLottery; f.rulesTea = data.rulesTea; }
 }
 
+const importMsg = ref('');
+async function exportData() {
+  const { data } = await admin.exportData();
+  if (!data) return;
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `生活系统数据备份-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+async function importData(e) {
+  const file = e.target.files?.[0];
+  e.target.value = '';
+  if (!file) return;
+  if (!confirm('导入会用备份文件覆盖当前所有数据（设置/期数/商品/账单/用户等），不可恢复，确认？')) return;
+  importMsg.value = '导入中…';
+  try {
+    const json = JSON.parse(await file.text());
+    const { ok, data } = await admin.importData(json);
+    if (ok) {
+      importMsg.value = '✓ 导入成功，即将刷新…';
+      setTimeout(() => location.reload(), 900);
+    } else {
+      importMsg.value = '导入失败：' + (data?.error || '');
+    }
+  } catch {
+    importMsg.value = '文件解析失败，请确认是导出的 JSON';
+  }
+}
+
 const MODES = [
   { v: 'follow', label: '跟随当期（用当前期自己选的风格）' },
   { v: 'random', label: '随机（每次进入随机一种风格）' },
@@ -130,6 +162,19 @@ const MODES = [
       <span class="text-sm font-medium text-slate-600">下午茶评分规则文案</span>
       <textarea v-model="f.rulesTea" rows="3" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:border-indigo-500"></textarea>
     </label>
+
+    <div class="mt-6 rounded-xl bg-slate-50 p-4">
+      <p class="text-sm font-semibold text-slate-700">数据备份</p>
+      <p class="mt-0.5 text-xs text-slate-500">导出全部后台数据（设置 / 期数 / 商品 / 账单 / 用户 / 指纹等）为 JSON；导入会覆盖现有数据。</p>
+      <div class="mt-3 flex flex-wrap items-center gap-3">
+        <button @click="exportData" class="rounded-xl bg-emerald-600 px-5 py-2 font-semibold text-white transition hover:bg-emerald-700">⬇ 导出数据</button>
+        <label class="cursor-pointer rounded-xl bg-white px-5 py-2 font-semibold text-indigo-600 ring-1 ring-slate-200 hover:bg-indigo-50">
+          ⬆ 导入数据
+          <input type="file" accept="application/json,.json" class="hidden" @change="importData" />
+        </label>
+        <span v-if="importMsg" class="text-sm font-medium text-slate-600">{{ importMsg }}</span>
+      </div>
+    </div>
 
     <div class="mt-6 flex items-center gap-3">
       <button @click="save" :disabled="saving" class="rounded-xl bg-indigo-600 px-6 py-2.5 font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50">

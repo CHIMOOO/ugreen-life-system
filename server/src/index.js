@@ -13,6 +13,7 @@ import {
   activatePeriod, getActivePeriodRow,
   ledger, billsForPeriod, billShowEffective,
   upsertUser, recordFingerprint, listUsers, userDetail,
+  exportAll, importAll,
 } from './db.js';
 import { computeResult, normalizePrizes } from './lottery.js';
 
@@ -26,7 +27,7 @@ fs.mkdirSync(uploadsDir, { recursive: true });
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '2mb' }));
+app.use(express.json({ limit: '50mb' })); // 数据导入可能较大
 app.use('/uploads', express.static(uploadsDir));
 
 // ---------- helpers ----------
@@ -564,6 +565,20 @@ app.get('/api/admin/periods/:id/bill-auto', adminAuth, (req, res) => {
 });
 
 // ================= 用户库 =================
+// ================= 数据备份 =================
+app.get('/api/admin/export', adminAuth, (req, res) => res.json(exportAll()));
+app.post('/api/admin/import', adminAuth, (req, res) => {
+  if (!req.body || typeof req.body !== 'object' || !req.body.tables) {
+    return res.status(400).json({ error: 'bad_data' });
+  }
+  try {
+    const counts = importAll(req.body);
+    res.json({ ok: true, counts });
+  } catch (e) {
+    res.status(400).json({ error: 'import_failed', message: String(e && e.message) });
+  }
+});
+
 app.get('/api/admin/users', adminAuth, (req, res) => res.json(listUsers()));
 app.get('/api/admin/users/:name', adminAuth, (req, res) => {
   const d = userDetail(decodeURIComponent(req.params.name));

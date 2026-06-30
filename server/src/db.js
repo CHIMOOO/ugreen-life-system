@@ -302,6 +302,46 @@ export function getActivePeriodRow() {
   return db.prepare('SELECT * FROM periods WHERE is_active = 1 ORDER BY id DESC LIMIT 1').get();
 }
 
+// ---------- 数据备份：导出 / 导入 ----------
+const BACKUP_TABLES = [
+  'settings', 'periods', 'entries', 'tea_products', 'period_products',
+  'tea_ratings', 'bills', 'users', 'fingerprints',
+];
+
+export function exportAll() {
+  const out = { version: 1, exportedAt: nowIso(), tables: {} };
+  for (const t of BACKUP_TABLES) out.tables[t] = db.prepare(`SELECT * FROM ${t}`).all();
+  return out;
+}
+
+// 用导入数据全量覆盖（事务内）。返回各表导入条数。
+export function importAll(data) {
+  const tables = data && data.tables ? data.tables : {};
+  const counts = {};
+  db.exec('BEGIN');
+  try {
+    for (const t of [...BACKUP_TABLES].reverse()) db.exec(`DELETE FROM ${t}`);
+    for (const t of BACKUP_TABLES) {
+      const rows = Array.isArray(tables[t]) ? tables[t] : [];
+      let n = 0;
+      for (const row of rows) {
+        const cols = Object.keys(row);
+        if (!cols.length) continue;
+        const ph = cols.map(() => '?').join(',');
+        db.prepare(`INSERT INTO ${t} (${cols.join(',')}) VALUES (${ph})`).run(...cols.map((c) => row[c]));
+        n++;
+      }
+      counts[t] = n;
+    }
+    db.exec("DELETE FROM sqlite_sequence");
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+  return counts;
+}
+
 // ---------- 账单 ----------
 
 const round2 = (n) => Math.round(n * 100) / 100;

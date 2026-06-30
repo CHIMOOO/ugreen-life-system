@@ -39,6 +39,8 @@ export const admin = {
   getConfig: () => req('/api/admin/config'),
   saveConfig: (body) => req('/api/admin/config', { method: 'PUT', body }),
   configDefaults: () => req('/api/config/defaults'),
+  exportData: () => req('/api/admin/export'),
+  importData: (body) => req('/api/admin/import', { method: 'POST', body }),
   // 商品库
   products: () => req('/api/admin/products'),
   createProduct: (body) => req('/api/admin/products', { method: 'POST', body }),
