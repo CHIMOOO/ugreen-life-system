@@ -76,6 +76,13 @@ function serializePeriod(row, { withResult = false, withEntries = false, teaExtr
     tea: teaEnabled ? teaPayload(row, teaExtra) : null,
     bill: { show: billShowEffective(row), ...billsForPeriod(row.id) },
     billShow: row.bill_show || 'inherit',
+    invalidNames: (() => {
+      try {
+        return JSON.parse(row.invalid_names || '[]');
+      } catch {
+        return [];
+      }
+    })(),
   };
   if (withResult && row.status === 'drawn' && row.result) {
     data.result = JSON.parse(row.result);
@@ -89,7 +96,13 @@ function serializePeriod(row, { withResult = false, withEntries = false, teaExtr
 function buildResult(row) {
   const entries = db.prepare('SELECT name, number FROM entries WHERE period_id = ?').all(row.id);
   const prizes = normalizePrizes(JSON.parse(row.prizes || '[]'));
-  return computeResult(entries, prizes);
+  let invalid = [];
+  try {
+    invalid = JSON.parse(row.invalid_names || '[]');
+  } catch {
+    /* ignore */
+  }
+  return computeResult(entries, prizes, invalid);
 }
 
 function adminAuth(req, res, next) {
@@ -406,7 +419,31 @@ app.post('/api/admin/periods/:id/reopen', adminAuth, (req, res) => {
   const row = getPeriodRow(req.params.id);
   if (!row) return res.status(404).json({ error: 'not_found' });
   db.prepare('UPDATE periods SET status = ?, result = NULL WHERE id = ?').run('open', row.id);
-  res.json(serializePeriod(getPeriodRow(row.id), { withResult: true, withEntries: true }));
+  res.json(serializePeriod(getPeriodRow(row.id), { withResult: true, withEntries: true, teaExtra: true }));
+});
+
+// 判定某人有效/无效；若已开奖则重算（无效者顺延，二名递补一名）
+app.post('/api/admin/periods/:id/invalid', adminAuth, (req, res) => {
+  const row = getPeriodRow(req.params.id);
+  if (!row) return res.status(404).json({ error: 'not_found' });
+  const name = (req.body?.name ?? '').toString();
+  const makeInvalid = !!req.body?.invalid;
+  let list = [];
+  try {
+    list = JSON.parse(row.invalid_names || '[]');
+  } catch {
+    /* ignore */
+  }
+  const set = new Set(list);
+  if (makeInvalid) set.add(name);
+  else set.delete(name);
+  db.prepare('UPDATE periods SET invalid_names = ? WHERE id = ?').run(JSON.stringify([...set]), row.id);
+  // 已开奖则按新的无效名单重算并落库
+  if (row.status === 'drawn') {
+    const result = buildResult(getPeriodRow(row.id));
+    db.prepare('UPDATE periods SET result = ? WHERE id = ?').run(JSON.stringify(result), row.id);
+  }
+  res.json(serializePeriod(getPeriodRow(row.id), { withResult: true, withEntries: true, teaExtra: true }));
 });
 
 // 图片上传

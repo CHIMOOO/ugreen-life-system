@@ -106,6 +106,7 @@ addColumnIfMissing('tea_products', 'price', 'TEXT');
 addColumnIfMissing('tea_products', 'qty', 'INTEGER');
 addColumnIfMissing('period_products', 'amount', 'TEXT');
 addColumnIfMissing('periods', 'bill_show', "TEXT DEFAULT 'inherit'"); // inherit|on|off：本期账单是否展示
+addColumnIfMissing('periods', 'invalid_names', "TEXT DEFAULT '[]'"); // 被判无效的参与者（开奖后顺延用）
 
 export function nowIso() {
   return new Date().toISOString();

@@ -85,6 +85,15 @@ async function doReopen() {
   if (!guard(res)) return;
   if (res.ok) { detail.value = res.data; await loadList(); flash('已撤销开奖'); }
 }
+async function doInvalid(name, invalid) {
+  const res = await admin.setInvalid(detail.value.id, name, invalid);
+  if (!guard(res)) return;
+  if (res.ok) {
+    detail.value = res.data;
+    await loadList();
+    flash(invalid ? `已判 ${name} 无效，名次顺延` : `已恢复 ${name}`);
+  }
+}
 async function doDelete() {
   if (!confirm('删除该期数及其全部数据，不可恢复，确认？')) return;
   const res = await admin.remove(detail.value.id);
@@ -197,6 +206,26 @@ onMounted(loadList);
                 <span v-for="(e, i) in detail.entries" :key="i" class="rounded-lg bg-slate-100 px-2.5 py-1 text-sm text-slate-600">{{ e.name }} · <b class="text-slate-800">{{ e.number }}</b></span>
               </div>
               <p v-else class="mt-2 text-sm text-slate-400">还没有人参与。</p>
+            </div>
+
+            <!-- 中奖判定（无效顺延） -->
+            <div v-if="detail.status === 'drawn' && detail.result" class="rounded-2xl border border-slate-200 bg-white p-5">
+              <h3 class="font-bold text-slate-800">中奖判定（判无效则名次顺延）</h3>
+              <div class="mt-3 space-y-2">
+                <div v-for="(w, i) in detail.result.winners" :key="i" class="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 p-3">
+                  <span class="text-sm text-slate-700"><b>{{ w.prizeName }}</b>：{{ w.name }}（{{ w.number }}）</span>
+                  <button @click="doInvalid(w.name, true)" class="rounded-lg bg-rose-50 px-3 py-1 text-sm font-medium text-rose-600 hover:bg-rose-100">判该人无效</button>
+                </div>
+              </div>
+              <div v-if="detail.invalidNames?.length" class="mt-4">
+                <p class="text-sm font-medium text-slate-500">已判无效（顺延已生效）：</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span v-for="(nm, i) in detail.invalidNames" :key="i" class="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-sm text-rose-700">
+                    {{ nm }}<button @click="doInvalid(nm, false)" class="font-bold text-rose-500 hover:text-rose-800">恢复</button>
+                  </span>
+                </div>
+              </div>
+              <p class="mt-2 text-xs text-slate-400">判某人无效后，会自动用排名靠后的有效者递补（第二名→第一名）；可随时恢复。</p>
             </div>
 
             <ResultPreview v-if="simulation" :result="simulation" :simulated="true" />

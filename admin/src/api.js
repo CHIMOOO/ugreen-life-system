@@ -58,6 +58,7 @@ export const admin = {
   simulate: (id) => req('/api/admin/periods/' + id + '/simulate', { method: 'POST', body: {} }),
   draw: (id) => req('/api/admin/periods/' + id + '/draw', { method: 'POST', body: {} }),
   reopen: (id) => req('/api/admin/periods/' + id + '/reopen', { method: 'POST', body: {} }),
+  setInvalid: (id, name, invalid) => req('/api/admin/periods/' + id + '/invalid', { method: 'POST', body: { name, invalid } }),
   upload: (file) => {
     const fd = new FormData();
     fd.append('file', file);

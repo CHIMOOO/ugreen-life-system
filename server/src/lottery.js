@@ -39,45 +39,63 @@ export function normalizePrizes(prizes) {
  * @param {{name:string, qty:number, image:string|null}[]} prizes 已规范化的奖品
  * @returns 结果对象（含每一步推导，供结果页主体展示算法过程）
  */
-export function computeResult(entries, prizes) {
+export function computeResult(entries, prizes, invalid = []) {
+  const invalidSet = new Set((invalid || []).map(String));
   const sorted = [...entries].sort((a, b) => a.number - b.number);
   const totalSum = sorted.reduce((s, e) => s + e.number, 0);
 
+  // 1) 先按算法算出「全量抽取顺序」（排名）。每一步都对剩余的人重新求和取余。
   const pool = sorted.map((e) => ({ name: e.name, number: e.number }));
+  const ranking = [];
+  while (pool.length) {
+    const poolSum = pool.reduce((s, e) => s + e.number, 0);
+    const n = pool.length;
+    const remainder = poolSum % n;
+    const winner = pool[remainder];
+    ranking.push({
+      rank: ranking.length + 1,
+      poolSize: n,
+      poolSum,
+      remainder,
+      pool: pool.map((e) => ({ name: e.name, number: e.number })),
+      name: winner.name,
+      number: winner.number,
+      invalid: invalidSet.has(winner.name),
+    });
+    pool.splice(remainder, 1);
+  }
+
+  // 2) 按奖品顺序分配名额，跳过被判无效者 -> 自动顺延（第二名递补第一名）
   const steps = [];
   const winners = [];
-
+  let ri = 0;
   for (let pi = 0; pi < prizes.length; pi++) {
     const prize = prizes[pi];
     for (let slot = 1; slot <= prize.qty; slot++) {
-      if (pool.length === 0) break;
-      const poolSum = pool.reduce((s, e) => s + e.number, 0);
-      const n = pool.length;
-      const remainder = poolSum % n;
-      const winner = pool[remainder];
-
+      while (ri < ranking.length && ranking[ri].invalid) ri++; // 跳过无效者
+      if (ri >= ranking.length) break;
+      const r = ranking[ri++];
       steps.push({
         prizeName: prize.name,
         prizeIndex: pi,
         slot,
         slotTotal: prize.qty,
         image: prize.image,
-        poolSize: n,
-        poolSum,
-        remainder,
-        winnerSortIndex: remainder, // 在当前升序奖池中的位置（0 基）
-        pool: pool.map((e) => ({ name: e.name, number: e.number })),
-        winner: { name: winner.name, number: winner.number },
+        poolSize: r.poolSize,
+        poolSum: r.poolSum,
+        remainder: r.remainder,
+        winnerSortIndex: r.remainder,
+        pool: r.pool,
+        winner: { name: r.name, number: r.number },
       });
       winners.push({
         prizeName: prize.name,
         prizeIndex: pi,
         slot,
         image: prize.image,
-        name: winner.name,
-        number: winner.number,
+        name: r.name,
+        number: r.number,
       });
-      pool.splice(remainder, 1);
     }
   }
 
@@ -85,7 +103,9 @@ export function computeResult(entries, prizes) {
     totalSum,
     participantCount: sorted.length,
     sorted: sorted.map((e) => ({ name: e.name, number: e.number })),
+    ranking,
     steps,
     winners,
+    invalid: [...invalidSet],
   };
 }
