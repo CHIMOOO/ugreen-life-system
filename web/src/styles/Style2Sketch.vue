@@ -26,8 +26,9 @@ const props = defineProps({
   submitState: { type: Object, default: () => ({ status: 'idle', message: '' }) },
   votedProducts: { type: Object, default: () => ({}) },
   ratingBusy: { type: Object, default: () => ({}) },
+  nameStatus: { type: Object, default: () => ({ exists: false, checking: false }) },
 });
-const emit = defineEmits(['submit', 'rate']);
+const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
 
 // 手绘风：用细微旋转 + 不规则圆角制造「贴纸／便签」错落感
 const TILTS = ['-2deg', '1.5deg', '-1deg', '2deg', '-1.5deg', '1deg'];
@@ -95,7 +96,7 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
               <div class="mt-8 space-y-6">
                 <div>
                   <label class="mb-2 block font-kalam text-lg font-bold text-sketch-ink">你的姓名</label>
-                  <input v-model="name" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
+                  <input v-model="name" @input="emit('name-input', name)" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
                     class="w-full border-[3px] border-sketch-ink bg-white px-5 py-3 font-patrick text-lg text-sketch-ink placeholder-sketch-ink/40 outline-none transition focus:border-sketch-blue focus:ring-2 focus:ring-sketch-blue/20 wobbly-pill" />
                 </div>
                 <div>
@@ -104,6 +105,10 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
                     class="w-full border-[3px] border-sketch-ink bg-white px-5 py-3 font-patrick text-lg text-sketch-ink placeholder-sketch-ink/40 outline-none transition focus:border-sketch-blue focus:ring-2 focus:ring-sketch-blue/20 wobbly-pill" />
                 </div>
                 <p v-if="errorMsg" class="border-[3px] border-dashed border-sketch-red bg-sketch-red/10 px-5 py-3 font-kalam font-bold text-sketch-red wobbly-md">⚠ {{ errorMsg }}</p>
+                <div v-if="nameStatus.exists" class="border-[3px] border-dashed border-sketch-blue bg-sketch-postit px-5 py-3 shadow-sketch-soft wobbly-md">
+                  <p class="font-patrick text-sm leading-relaxed text-sketch-ink/80">该姓名已提交过本期抽奖。重复提交会导致抽奖无效，可先撤销再重新参与。<span class="text-sketch-ink/50">（为保密不显示号码）</span></p>
+                  <button @click="emit('cancel', name)" class="mt-2 border-[3px] border-sketch-ink bg-white px-4 py-1.5 font-kalam text-sm font-bold text-sketch-red shadow-sketch-soft transition-transform duration-100 hover:-rotate-1 hover:bg-sketch-red hover:text-white active:translate-x-[2px] active:translate-y-[2px] active:shadow-none wobbly-pill">撤销抽奖</button>
+                </div>
                 <button :disabled="submitting" @click="doSubmit"
                   class="h-14 w-full border-[3px] border-sketch-ink bg-white px-8 font-kalam text-xl font-bold text-sketch-ink shadow-sketch transition-transform duration-100 hover:-rotate-1 hover:bg-sketch-red hover:text-white hover:shadow-sketch-soft active:translate-x-[3px] active:translate-y-[3px] active:shadow-none disabled:opacity-50 wobbly-pill">
                   {{ submitting ? '提交中…' : '🚀 立即参与' }}

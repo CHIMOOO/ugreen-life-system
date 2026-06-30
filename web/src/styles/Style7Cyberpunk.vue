@@ -26,8 +26,9 @@ const props = defineProps({
   submitState: { type: Object, default: () => ({ status: 'idle', message: '' }) },
   votedProducts: { type: Object, default: () => ({}) },
   ratingBusy: { type: Object, default: () => ({}) },
+  nameStatus: { type: Object, default: () => ({ exists: false, checking: false }) },
 });
-const emit = defineEmits(['submit', 'rate']);
+const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
 
 // 霓虹轮换色：粉 / 青 / 紫 / 黄 / 绿
 const ACCENTS = ['#FF2A6D', '#05D9E8', '#9D00FF', '#F9F002', '#00FF9F'];
@@ -86,7 +87,7 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
               <div class="mt-8 space-y-6">
                 <div>
                   <label class="mb-2 block font-orbitron text-xs font-bold uppercase tracking-[0.3em] text-cyber-cyan">你的姓名 // NAME</label>
-                  <input v-model="name" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
+                  <input v-model="name" @input="emit('name-input', name)" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
                     class="w-full cyber-clip border border-cyber-cyan bg-black/60 px-5 py-4 font-mono text-lg text-cyber-cyan placeholder-cyber-fg/30 outline-none transition focus:cyber-glow-cyan" />
                 </div>
                 <div>
@@ -95,6 +96,10 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
                     class="w-full cyber-clip border border-cyber-yellow bg-black/60 px-5 py-4 font-mono text-lg text-cyber-yellow placeholder-cyber-fg/30 outline-none transition focus:shadow-[0_0_10px_rgba(249,240,2,.7),0_0_24px_rgba(249,240,2,.4)]" />
                 </div>
                 <p v-if="errorMsg" class="cyber-clip border border-cyber-pink bg-cyber-pink/10 px-5 py-3 font-mono text-sm font-bold text-cyber-pink cyber-text-pink">! ERR // {{ errorMsg }}</p>
+                <div v-if="nameStatus.exists" class="cyber-clip border border-cyber-yellow/60 bg-cyber-yellow/10 px-5 py-3">
+                  <p class="font-mono text-sm text-cyber-yellow">! WARN // 该姓名已提交过本期抽奖。重复提交会导致抽奖无效，可先撤销再重新参与。<span class="text-cyber-fg/60">（为保密不显示号码）</span></p>
+                  <button @click="emit('cancel', name)" class="mt-3 cyber-clip border border-cyber-pink bg-black/50 px-5 py-2 font-orbitron text-xs font-bold uppercase tracking-widest text-cyber-pink transition hover:bg-cyber-pink hover:text-black hover:cyber-glow-pink">&gt; 撤销抽奖</button>
+                </div>
                 <button :disabled="submitting" @click="doSubmit"
                   class="h-16 w-full cyber-clip bg-cyber-pink px-10 font-orbitron text-lg font-black uppercase tracking-widest text-black cyber-glow-pink transition-all duration-200 hover:scale-[1.03] active:scale-95 disabled:opacity-50">
                   {{ submitting ? '提交中…' : '&gt;&gt; 立即参与' }}

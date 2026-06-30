@@ -27,8 +27,9 @@ const props = defineProps({
   submitState: { type: Object, default: () => ({ status: 'idle', message: '' }) },
   votedProducts: { type: Object, default: () => ({}) },
   ratingBusy: { type: Object, default: () => ({}) },
+  nameStatus: { type: Object, default: () => ({ exists: false, checking: false }) },
 });
-const emit = defineEmits(['submit', 'rate']);
+const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
 
 const isDrawn = computed(() => props.period.status === 'drawn');
 const lotteryOn = computed(() => props.period.lotteryEnabled);
@@ -89,7 +90,7 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
               <div class="mt-8 space-y-6">
                 <div>
                   <label class="mb-3 block text-xs font-semibold uppercase tracking-widest text-neu-muted">你的姓名</label>
-                  <input v-model="name" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
+                  <input v-model="name" @input="emit('name-input', name)" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
                     class="neu-pressed w-full rounded-2xl border-0 bg-neu-bg px-6 py-4 text-base font-medium text-neu-fg placeholder-neu-muted/60 outline-none transition focus:text-neu-accent" />
                 </div>
                 <div>
@@ -98,6 +99,10 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
                     class="neu-pressed w-full rounded-2xl border-0 bg-neu-bg px-6 py-4 text-base font-medium text-neu-fg placeholder-neu-muted/60 outline-none transition focus:text-neu-accent" />
                 </div>
                 <p v-if="errorMsg" class="neu-pressed rounded-2xl px-5 py-3 text-sm font-medium text-rose-400">⚠ {{ errorMsg }}</p>
+                <div v-if="nameStatus.exists" class="neu-pressed rounded-2xl px-5 py-4">
+                  <p class="text-sm leading-relaxed text-neu-fg/80">该姓名已提交过本期抽奖。重复提交会导致抽奖无效，可先撤销再重新参与。<span class="text-neu-muted">（为保密不显示号码）</span></p>
+                  <button @click="emit('cancel', name)" class="neu-raised-sm mt-3 rounded-full px-5 py-2 text-xs font-semibold text-neu-accent transition-all duration-200 hover:-translate-y-0.5 active:neu-pressed active:translate-y-0">撤销抽奖</button>
+                </div>
                 <button :disabled="submitting" @click="doSubmit"
                   class="neu-raised h-16 w-full rounded-2xl px-10 text-base font-semibold text-neu-accent transition-all duration-200 hover:-translate-y-0.5 active:neu-pressed active:translate-y-0 disabled:opacity-50">
                   {{ submitting ? '提交中…' : '立即参与' }}

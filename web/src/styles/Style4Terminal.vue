@@ -26,8 +26,9 @@ const props = defineProps({
   submitState: { type: Object, default: () => ({ status: 'idle', message: '' }) },
   votedProducts: { type: Object, default: () => ({}) },
   ratingBusy: { type: Object, default: () => ({}) },
+  nameStatus: { type: Object, default: () => ({ exists: false, checking: false }) },
 });
-const emit = defineEmits(['submit', 'rate']);
+const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
 
 const isDrawn = computed(() => props.period.status === 'drawn');
 const lotteryOn = computed(() => props.period.lotteryEnabled);
@@ -93,7 +94,7 @@ function asciiBar(rate) {
                   <label class="mb-1 block text-xs font-bold uppercase tracking-widest text-term-amber">姓名 / NAME</label>
                   <div class="flex items-stretch border border-term-dim bg-black focus-within:border-term-green focus-within:shadow-[0_0_12px_rgba(51,255,102,.4)]">
                     <span class="grid place-items-center px-3 text-term-green">&gt;</span>
-                    <input v-model="name" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
+                    <input v-model="name" @input="emit('name-input', name)" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
                       class="w-full bg-transparent py-3 pr-4 text-term-green caret-term-green placeholder-term-dim/70 outline-none" />
                   </div>
                 </div>
@@ -106,6 +107,10 @@ function asciiBar(rate) {
                   </div>
                 </div>
                 <p v-if="errorMsg" class="border border-term-red bg-term-red/10 px-4 py-2 text-sm font-bold text-term-red">ERROR: {{ errorMsg }}</p>
+                <div v-if="nameStatus.exists" class="border border-term-amber bg-term-amber/10 px-4 py-3">
+                  <p class="text-xs leading-relaxed text-term-amber">// WARN: 该姓名已提交过本期抽奖。重复提交会导致抽奖无效，可先撤销再重新参与。<span class="text-term-dim">（为保密不显示号码）</span></p>
+                  <button @click="emit('cancel', name)" class="mt-2 border border-term-amber bg-transparent px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-term-amber transition-colors hover:bg-term-amber hover:text-term-bg">[ 撤销抽奖 ]</button>
+                </div>
                 <button :disabled="submitting" @click="doSubmit"
                   class="w-full border border-term-green bg-transparent py-3 text-sm font-bold uppercase tracking-widest text-term-green transition-colors hover:bg-term-green hover:text-term-bg disabled:cursor-not-allowed disabled:opacity-40">
                   {{ submitting ? '> 提交中…' : '[ RUN ] > SUBMIT' }}

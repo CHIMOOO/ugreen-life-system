@@ -13,6 +13,8 @@ export function usePeriodShell(periodRef) {
   const submitState = ref({ status: 'idle', message: '' }); // idle|success|joined|error
   const votedProducts = ref({}); // { [productId]: true }
   const ratingBusy = ref({});
+  const nameStatus = ref({ exists: false, checking: false }); // 当前姓名是否已提交
+  let checkTimer = null;
 
   function syncLocal() {
     const p = periodRef.value;
@@ -59,5 +61,45 @@ export function usePeriodShell(periodRef) {
     }
   }
 
-  return { submitting, submitState, votedProducts, ratingBusy, onSubmit, onRate, syncLocal };
+  // 防抖检查姓名是否已提交（输入姓名/数字时调用）
+  function onNameInput(name) {
+    const nm = String(name || '').trim();
+    clearTimeout(checkTimer);
+    if (!nm) {
+      nameStatus.value = { exists: false, checking: false };
+      return;
+    }
+    nameStatus.value = { ...nameStatus.value, checking: true };
+    checkTimer = setTimeout(async () => {
+      const p = periodRef.value;
+      if (!p) return;
+      const { data } = await api.checkName(p.id, nm);
+      nameStatus.value = { exists: !!data?.exists, checking: false };
+    }, 400);
+  }
+
+  // 撤销抽奖：按姓名删除（开奖前），记录指纹追溯，绝不回显号码
+  async function onCancel(name) {
+    const p = periodRef.value;
+    const nm = String(name || '').trim();
+    if (!p || !nm) return;
+    const { ok, data } = await api.cancelEntry(p.id, { name: nm, fingerprint: getFingerprint() });
+    if (ok && data?.ok) {
+      p.participantCount = data.participantCount;
+      nameStatus.value = { exists: false, checking: false };
+      if (['joined', 'success'].includes(submitState.value.status)) {
+        submitState.value = { status: 'idle', message: '' };
+      }
+      try {
+        localStorage.removeItem('joined_' + p.id);
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  return {
+    submitting, submitState, votedProducts, ratingBusy, nameStatus,
+    onSubmit, onRate, onNameInput, onCancel, syncLocal,
+  };
 }

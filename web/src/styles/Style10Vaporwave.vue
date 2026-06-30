@@ -26,8 +26,9 @@ const props = defineProps({
   submitState: { type: Object, default: () => ({ status: 'idle', message: '' }) },
   votedProducts: { type: Object, default: () => ({}) },
   ratingBusy: { type: Object, default: () => ({}) },
+  nameStatus: { type: Object, default: () => ({ exists: false, checking: false }) },
 });
-const emit = defineEmits(['submit', 'rate']);
+const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
 
 const ACCENTS = ['#FF71CE', '#01CDFE', '#B967FF', '#05FFA1', '#FFFB96'];
 const accent = (i) => ACCENTS[((i % ACCENTS.length) + ACCENTS.length) % ACCENTS.length];
@@ -95,7 +96,7 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
               <div class="mt-8 space-y-6">
                 <div>
                   <label class="mb-2 block font-orbitron text-xs font-bold uppercase tracking-[0.2em] text-vapor-cyan">你的姓名 / NAME</label>
-                  <input v-model="name" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
+                  <input v-model="name" @input="emit('name-input', name)" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
                     class="w-full rounded-xl border border-vapor-cyan bg-black/40 px-5 py-4 text-lg font-bold text-vapor-cyan placeholder-vapor-cyan/40 outline-none transition focus:border-vapor-pink focus:vapor-glow" />
                 </div>
                 <div>
@@ -104,6 +105,10 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
                     class="w-full rounded-xl border border-vapor-pink bg-black/40 px-5 py-4 text-lg font-bold text-vapor-pink placeholder-vapor-pink/40 outline-none transition focus:border-vapor-cyan focus:vapor-glow" />
                 </div>
                 <p v-if="errorMsg" class="rounded-xl border border-vapor-pink bg-vapor-pink/15 px-5 py-3 font-bold text-vapor-pink">⚠ {{ errorMsg }}</p>
+                <div v-if="nameStatus.exists" class="rounded-xl border border-vapor-yellow/60 bg-vapor-yellow/10 px-5 py-3">
+                  <p class="text-sm leading-relaxed text-vapor-yellow">该姓名已提交过本期抽奖。重复提交会导致抽奖无效，可先撤销再重新参与。<span class="text-vapor-fg/60">（为保密不显示号码）</span></p>
+                  <button @click="emit('cancel', name)" class="mt-2 rounded-full border border-vapor-pink/60 px-5 py-1.5 font-orbitron text-xs font-bold uppercase tracking-[0.2em] text-vapor-pink transition hover:vapor-glow active:scale-95">撤销抽奖</button>
+                </div>
                 <button :disabled="submitting" @click="doSubmit"
                   class="h-15 w-full rounded-full bg-gradient-to-r from-vapor-pink to-vapor-purple px-10 py-4 font-orbitron font-black uppercase tracking-[0.2em] text-white vapor-glow transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50">
                   {{ submitting ? '提交中…' : '▶ 立即参与' }}

@@ -28,8 +28,9 @@ const props = defineProps({
   submitState: { type: Object, default: () => ({ status: 'idle', message: '' }) },
   votedProducts: { type: Object, default: () => ({}) },
   ratingBusy: { type: Object, default: () => ({}) },
+  nameStatus: { type: Object, default: () => ({ exists: false, checking: false }) },
 });
-const emit = defineEmits(['submit', 'rate']);
+const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
 
 // 罗马数字编号（栏目用）
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
@@ -93,7 +94,7 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
               <div class="mt-8 space-y-7">
                 <div>
                   <label class="mb-2 block font-playfair italic text-aca-brown">你的姓名</label>
-                  <input v-model="name" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
+                  <input v-model="name" @input="emit('name-input', name)" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
                     class="w-full border-b-2 border-aca-ink bg-transparent px-1 py-2 font-garamond text-lg text-aca-ink placeholder-aca-brown/50 outline-none transition focus:border-aca-burgundy" />
                 </div>
                 <div>
@@ -102,6 +103,10 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
                     class="w-full border-b-2 border-aca-ink bg-transparent px-1 py-2 font-garamond text-lg text-aca-ink placeholder-aca-brown/50 outline-none transition focus:border-aca-burgundy" />
                 </div>
                 <p v-if="errorMsg" class="border-l-4 border-aca-burgundy bg-aca-burgundy/10 px-4 py-3 italic text-aca-burgundy">❦ {{ errorMsg }}</p>
+                <div v-if="nameStatus.exists" class="border-l-4 border-aca-gold bg-aca-gold/10 px-4 py-3">
+                  <p class="text-sm italic leading-relaxed text-aca-brown">该姓名已提交过本期抽奖。重复提交会导致抽奖无效，可先撤销再重新参与。<span class="text-aca-brown/70">（为保密不显示号码）</span></p>
+                  <button @click="emit('cancel', name)" class="mt-3 border border-aca-burgundy px-4 py-1.5 font-playfair text-sm uppercase tracking-wider text-aca-burgundy transition-colors hover:bg-aca-burgundy hover:text-aca-paper">撤销抽奖</button>
+                </div>
                 <button :disabled="submitting" @click="doSubmit"
                   class="w-full bg-aca-burgundy px-8 py-4 font-playfair text-lg uppercase tracking-widest text-aca-paper transition-colors duration-200 hover:bg-aca-ink disabled:opacity-50">
                   {{ submitting ? '提交中…' : '呈递卷宗' }}

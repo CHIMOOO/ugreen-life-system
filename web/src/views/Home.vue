@@ -12,7 +12,7 @@ const config = ref(null);
 const period = ref(null);
 const periods = ref([]);
 
-const { submitting, submitState, votedProducts, ratingBusy, onSubmit, onRate, syncLocal } =
+const { submitting, submitState, votedProducts, ratingBusy, nameStatus, onSubmit, onRate, onNameInput, onCancel, syncLocal } =
   usePeriodShell(period);
 
 // 首页风格：跟随当期 / 随机 / 固定，由后台配置决定
@@ -47,8 +47,11 @@ onMounted(async () => {
       :submit-state="submitState"
       :voted-products="votedProducts"
       :rating-busy="ratingBusy"
+      :name-status="nameStatus"
       @submit="onSubmit"
       @rate="onRate"
+      @name-input="onNameInput"
+      @cancel="onCancel"
     />
     <NoEvent v-else :config="config" :periods="periods" />
 

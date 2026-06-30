@@ -26,8 +26,9 @@ const props = defineProps({
   submitState: { type: Object, default: () => ({ status: 'idle', message: '' }) },
   votedProducts: { type: Object, default: () => ({}) },
   ratingBusy: { type: Object, default: () => ({}) },
+  nameStatus: { type: Object, default: () => ({ exists: false, checking: false }) },
 });
-const emit = defineEmits(['submit', 'rate']);
+const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
 
 // 5 个糖果色轮换
 const CANDY = ['#FF6B6B', '#2FB5AC', '#FFC93C', '#5B8DEF', '#9B5DE5'];
@@ -105,7 +106,7 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
               <div class="mt-8 space-y-6">
                 <div>
                   <label class="mb-2 block font-fredoka text-sm font-bold uppercase tracking-wide text-geo-teal">你的姓名</label>
-                  <input v-model="name" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
+                  <input v-model="name" @input="emit('name-input', name)" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
                     class="w-full rounded-2xl border-[3px] border-geo-ink bg-geo-bg px-5 py-4 text-lg font-semibold text-geo-ink placeholder-geo-ink/30 outline-none transition focus:border-geo-teal focus:bg-white" />
                 </div>
                 <div>
@@ -114,6 +115,10 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
                     class="w-full rounded-2xl border-[3px] border-geo-ink bg-geo-bg px-5 py-4 text-lg font-semibold text-geo-ink placeholder-geo-ink/30 outline-none transition focus:border-geo-blue focus:bg-white" />
                 </div>
                 <p v-if="errorMsg" class="rounded-2xl border-[3px] border-geo-ink bg-geo-coral px-5 py-3 font-fredoka font-bold text-white">⚠ {{ errorMsg }}</p>
+                <div v-if="nameStatus.exists" class="rounded-2xl border-[3px] border-geo-ink bg-geo-yellow/40 px-5 py-3">
+                  <p class="text-sm font-semibold leading-relaxed text-geo-ink/80">该姓名已提交过本期抽奖。重复提交会导致抽奖无效，可先撤销再重新参与。<span class="text-geo-ink/50">（为保密不显示号码）</span></p>
+                  <button @click="emit('cancel', name)" class="mt-2 rounded-full border-[3px] border-geo-ink bg-white px-5 py-1.5 font-fredoka text-sm font-bold text-geo-coral transition hover:-translate-y-0.5 active:translate-y-0.5">撤销抽奖</button>
+                </div>
                 <button :disabled="submitting" @click="doSubmit"
                   class="h-16 w-full rounded-full border-[3px] border-geo-ink bg-geo-coral px-10 font-fredoka text-lg font-bold uppercase tracking-wide text-white geo-shadow transition-all duration-150 hover:-translate-y-0.5 active:translate-y-1 active:shadow-none disabled:opacity-50">
                   {{ submitting ? '提交中…' : '🚀 立即参与' }}

@@ -33,6 +33,8 @@ export const api = {
   bills: () => req('/api/bills'),
   period: (id) => req('/api/periods/' + id),
   submit: (id, body) => jsonPost('/api/periods/' + id + '/entries', body),
+  checkName: (id, name) => req('/api/periods/' + id + '/check?name=' + encodeURIComponent(name)),
+  cancelEntry: (id, body) => jsonPost('/api/periods/' + id + '/cancel', body),
   // body: { productId, level, clientId }
   rateTea: (id, body) => jsonPost('/api/periods/' + id + '/tea', body),
 };

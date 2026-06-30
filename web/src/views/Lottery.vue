@@ -15,7 +15,7 @@ const notFound = ref(false);
 const config = ref(null);
 const period = ref(null);
 
-const { submitting, submitState, votedProducts, ratingBusy, onSubmit, onRate, syncLocal } =
+const { submitting, submitState, votedProducts, ratingBusy, nameStatus, onSubmit, onRate, onNameInput, onCancel, syncLocal } =
   usePeriodShell(period);
 
 const styleComponent = computed(() => (period.value ? resolveStyle(period.value.style) : null));
@@ -50,7 +50,10 @@ onMounted(async () => {
     :submit-state="submitState"
     :voted-products="votedProducts"
     :rating-busy="ratingBusy"
+    :name-status="nameStatus"
     @submit="onSubmit"
     @rate="onRate"
+    @name-input="onNameInput"
+    @cancel="onCancel"
   />
 </template>

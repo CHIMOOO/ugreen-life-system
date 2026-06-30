@@ -26,8 +26,9 @@ const props = defineProps({
   submitState: { type: Object, default: () => ({ status: 'idle', message: '' }) },
   votedProducts: { type: Object, default: () => ({}) },
   ratingBusy: { type: Object, default: () => ({}) },
+  nameStatus: { type: Object, default: () => ({ exists: false, checking: false }) },
 });
-const emit = defineEmits(['submit', 'rate']);
+const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
 
 // 复古四色轮换：芥末黄 / 焦橙 / 牛油果绿 / 复古青
 const ACCENTS = ['#E3A857', '#CB6843', '#6B8E23', '#2A7E78'];
@@ -96,7 +97,7 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
               <div class="mt-8 space-y-6">
                 <div>
                   <label class="mb-2 block font-righteous uppercase tracking-[0.2em] text-retro-teal">你的姓名</label>
-                  <input v-model="name" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
+                  <input v-model="name" @input="emit('name-input', name)" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
                     class="w-full rounded-xl border-2 border-retro-brown bg-retro-bg px-5 py-4 text-lg font-semibold text-retro-ink placeholder-retro-brown/40 outline-none transition focus:border-retro-orange focus:ring-2 focus:ring-retro-orange/40" />
                 </div>
                 <div>
@@ -105,6 +106,10 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
                     class="w-full rounded-xl border-2 border-retro-brown bg-retro-bg px-5 py-4 text-lg font-semibold text-retro-ink placeholder-retro-brown/40 outline-none transition focus:border-retro-orange focus:ring-2 focus:ring-retro-orange/40" />
                 </div>
                 <p v-if="errorMsg" class="rounded-xl border-2 border-retro-orange bg-retro-orange/15 px-5 py-3 font-semibold text-retro-orange">⚠ {{ errorMsg }}</p>
+                <div v-if="nameStatus.exists" class="rounded-xl border-2 border-retro-teal bg-retro-teal/15 px-5 py-3">
+                  <p class="font-poppins text-sm font-semibold text-retro-teal">该姓名已提交过本期抽奖。重复提交会导致抽奖无效，可先撤销再重新参与。<span class="text-retro-brown/80">（为保密不显示号码）</span></p>
+                  <button @click="emit('cancel', name)" class="mt-3 rounded-full border-2 border-retro-brown bg-retro-bg px-5 py-2 font-righteous text-sm uppercase tracking-wide text-retro-orange transition active:translate-y-0.5">撤销抽奖</button>
+                </div>
                 <button :disabled="submitting" @click="doSubmit"
                   class="h-16 w-full rounded-full border-2 border-retro-brown bg-retro-orange px-10 font-righteous text-lg uppercase tracking-widest text-retro-bg retro-shadow transition active:translate-y-0.5 active:shadow-none disabled:opacity-50">
                   {{ submitting ? '提交中…' : '🚀 立即参与' }}

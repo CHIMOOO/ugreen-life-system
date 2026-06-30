@@ -26,8 +26,9 @@ const props = defineProps({
   submitState: { type: Object, default: () => ({ status: 'idle', message: '' }) },
   votedProducts: { type: Object, default: () => ({}) },
   ratingBusy: { type: Object, default: () => ({}) },
+  nameStatus: { type: Object, default: () => ({ exists: false, checking: false }) },
 });
-const emit = defineEmits(['submit', 'rate']);
+const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
 
 // 三原色循环——红、蓝、黄，包豪斯的全部色谱。
 const PRIMARIES = ['#D02020', '#1040C0', '#F0C020'];
@@ -100,7 +101,7 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
               <div class="mt-8 space-y-6">
                 <div>
                   <label class="mb-2 block text-sm font-bold uppercase tracking-widest text-bau-blue">你的姓名</label>
-                  <input v-model="name" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
+                  <input v-model="name" @input="emit('name-input', name)" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
                     class="w-full rounded-none border-4 border-bau-ink bg-bau-bg px-5 py-4 text-lg font-bold text-bau-ink placeholder-bau-ink/30 outline-none transition focus:bg-white focus:shadow-bau-sm" />
                 </div>
                 <div>
@@ -109,6 +110,10 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
                     class="w-full rounded-none border-4 border-bau-ink bg-bau-bg px-5 py-4 text-lg font-bold text-bau-ink placeholder-bau-ink/30 outline-none transition focus:bg-white focus:shadow-bau-sm" />
                 </div>
                 <p v-if="errorMsg" class="flex items-center gap-2 border-4 border-bau-ink bg-bau-red px-5 py-3 font-bold text-white shadow-bau-sm">▲ {{ errorMsg }}</p>
+                <div v-if="nameStatus.exists" class="border-4 border-bau-ink bg-bau-yellow px-5 py-3 text-bau-ink shadow-bau-sm">
+                  <p class="text-sm font-bold leading-relaxed">该姓名已提交过本期抽奖。重复提交会导致抽奖无效，可先撤销再重新参与。<span class="text-bau-ink/60">（为保密不显示号码）</span></p>
+                  <button @click="emit('cancel', name)" class="mt-3 rounded-none border-2 border-bau-ink bg-white px-4 py-2 text-sm font-black uppercase tracking-widest text-bau-ink shadow-bau-sm transition-all duration-200 ease-out hover:bg-bau-red hover:text-white active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">撤销抽奖</button>
+                </div>
                 <button :disabled="submitting" @click="doSubmit"
                   class="w-full rounded-none border-4 border-bau-ink bg-bau-red px-10 py-5 text-lg font-black uppercase tracking-widest text-white shadow-bau-md transition-all duration-200 ease-out hover:-translate-y-1 active:translate-x-[3px] active:translate-y-[3px] active:shadow-none disabled:opacity-50">
                   {{ submitting ? '提交中…' : '立即参与 ▶' }}

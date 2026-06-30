@@ -26,8 +26,9 @@ const props = defineProps({
   submitState: { type: Object, default: () => ({ status: 'idle', message: '' }) },
   votedProducts: { type: Object, default: () => ({}) },
   ratingBusy: { type: Object, default: () => ({}) },
+  nameStatus: { type: Object, default: () => ({ exists: false, checking: false }) },
 });
-const emit = defineEmits(['submit', 'rate']);
+const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
 
 const ACCENTS = ['#FF3AF2', '#00F5D4', '#FFE600', '#FF6B35', '#7B2FFF'];
 const accent = (i) => ACCENTS[((i % ACCENTS.length) + ACCENTS.length) % ACCENTS.length];
@@ -84,7 +85,7 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
               <div class="mt-8 space-y-6">
                 <div>
                   <label class="mb-2 block font-black uppercase tracking-widest text-max-secondary">你的姓名</label>
-                  <input v-model="name" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
+                  <input v-model="name" @input="emit('name-input', name)" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
                     class="w-full rounded-full border-4 border-max-accent bg-max-muted/50 px-6 py-4 text-lg font-bold text-white placeholder-white/40 outline-none backdrop-blur-sm transition focus:border-max-secondary focus:shadow-[0_0_24px_rgba(0,245,212,.5)]" />
                 </div>
                 <div>
@@ -93,6 +94,10 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
                     class="w-full rounded-full border-4 border-max-quaternary bg-max-muted/50 px-6 py-4 text-lg font-bold text-white placeholder-white/40 outline-none backdrop-blur-sm transition focus:border-max-tertiary focus:shadow-[0_0_24px_rgba(255,230,0,.5)]" />
                 </div>
                 <p v-if="errorMsg" class="rounded-2xl border-4 border-max-accent bg-max-accent/15 px-5 py-3 font-bold text-max-accent">⚠ {{ errorMsg }}</p>
+                <div v-if="nameStatus.exists" class="rounded-2xl border-4 border-max-tertiary bg-max-tertiary/15 px-5 py-3">
+                  <p class="font-bold text-max-tertiary">该姓名已提交过本期抽奖。重复提交会导致抽奖无效，可先撤销再重新参与。<span class="text-white/70">（为保密不显示号码）</span></p>
+                  <button @click="emit('cancel', name)" class="mt-2 rounded-full border-2 border-max-accent px-5 py-2 font-black uppercase text-max-accent transition hover:bg-max-accent hover:text-black">撤销抽奖</button>
+                </div>
                 <button :disabled="submitting" @click="doSubmit"
                   class="h-16 w-full rounded-full border-4 border-max-tertiary bg-gradient-to-r from-[#FF3AF2] via-[#7B2FFF] to-[#00F5D4] px-10 font-black uppercase tracking-widest text-white glow-accent transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50">
                   {{ submitting ? '提交中…' : '🚀 立即参与' }}

@@ -26,8 +26,9 @@ const props = defineProps({
   submitState: { type: Object, default: () => ({ status: 'idle', message: '' }) },
   votedProducts: { type: Object, default: () => ({}) },
   ratingBusy: { type: Object, default: () => ({}) },
+  nameStatus: { type: Object, default: () => ({ exists: false, checking: false }) },
 });
-const emit = defineEmits(['submit', 'rate']);
+const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
 
 const isDrawn = computed(() => props.period.status === 'drawn');
 const lotteryOn = computed(() => props.period.lotteryEnabled);
@@ -93,7 +94,7 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
               <div class="mt-7 space-y-6">
                 <div>
                   <label class="mb-1 block text-xs font-medium text-md-primary">你的姓名</label>
-                  <input v-model="name" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
+                  <input v-model="name" @input="emit('name-input', name)" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
                     class="w-full rounded-t-lg border-b-2 border-md-outline bg-md-surfaceVar px-4 py-3 text-md-onSurface outline-none transition-colors duration-200 placeholder:text-md-secondary/60 focus:border-md-primary" />
                 </div>
                 <div>
@@ -104,6 +105,13 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
                 <p v-if="errorMsg" class="flex items-center gap-2 rounded-lg border-b-2 border-md-error bg-md-error/5 px-4 py-3 text-sm font-medium text-md-error">
                   ⚠ {{ errorMsg }}
                 </p>
+                <div v-if="nameStatus.exists" class="rounded-lg bg-md-tertiary/10 px-4 py-3">
+                  <p class="text-sm leading-relaxed text-md-onSurface/80">该姓名已提交过本期抽奖。重复提交会导致抽奖无效，可先撤销再重新参与。<span class="text-md-secondary">（为保密不显示号码）</span></p>
+                  <button @click="emit('cancel', name)"
+                    class="mt-2 inline-flex h-9 items-center justify-center rounded-full border border-md-error px-5 text-sm font-medium text-md-error transition-colors duration-200 hover:bg-md-error/10">
+                    撤销抽奖
+                  </button>
+                </div>
                 <button :disabled="submitting" @click="doSubmit"
                   class="inline-flex h-12 w-full items-center justify-center rounded-full bg-md-primary px-6 text-sm font-medium tracking-wide text-md-onPrimary md-elev-1 transition-all duration-200 hover:brightness-110 hover:md-elev-2 active:brightness-95 disabled:cursor-not-allowed disabled:opacity-50">
                   {{ submitting ? '提交中…' : '立即参与' }}

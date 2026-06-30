@@ -26,8 +26,9 @@ const props = defineProps({
   submitState: { type: Object, default: () => ({ status: 'idle', message: '' }) },
   votedProducts: { type: Object, default: () => ({}) },
   ratingBusy: { type: Object, default: () => ({}) },
+  nameStatus: { type: Object, default: () => ({ exists: false, checking: false }) },
 });
-const emit = defineEmits(['submit', 'rate']);
+const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
 
 const isDrawn = computed(() => props.period.status === 'drawn');
 const lotteryOn = computed(() => props.period.lotteryEnabled);
@@ -104,7 +105,7 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
               <div class="mt-8 space-y-6">
                 <div>
                   <label class="mb-2 block font-cormorant text-lg font-medium text-bot-leaf">你的姓名</label>
-                  <input v-model="name" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
+                  <input v-model="name" @input="emit('name-input', name)" type="text" maxlength="30" :placeholder="config.namePlaceholder || '例如：陈老板'"
                     class="w-full rounded-2xl border border-bot-sage bg-white px-5 py-4 text-lg text-bot-ink placeholder-bot-sage/60 outline-none transition focus:border-bot-leaf focus:ring-2 focus:ring-bot-leaf/20" />
                 </div>
                 <div>
@@ -113,6 +114,10 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
                     class="w-full rounded-2xl border border-bot-sage bg-white px-5 py-4 text-lg text-bot-ink placeholder-bot-sage/60 outline-none transition focus:border-bot-leaf focus:ring-2 focus:ring-bot-leaf/20" />
                 </div>
                 <p v-if="errorMsg" class="rounded-2xl border border-bot-terracotta/60 bg-bot-terracotta/10 px-5 py-3 font-medium text-bot-terracotta">🍂 {{ errorMsg }}</p>
+                <div v-if="nameStatus.exists" class="rounded-2xl border border-bot-terracotta/50 bg-bot-terracotta/10 px-5 py-4">
+                  <p class="font-cormorant text-base leading-relaxed text-bot-ink/80">🍂 该姓名已提交过本期抽奖。重复提交会导致抽奖无效，可先撤销再重新参与。<span class="text-bot-ink/55">（为保密不显示号码）</span></p>
+                  <button @click="emit('cancel', name)" class="mt-3 rounded-full border border-bot-terracotta px-5 py-2 text-sm font-medium text-bot-terracotta transition hover:-translate-y-0.5 hover:bg-bot-terracotta hover:text-bot-cream active:translate-y-0">撤销抽奖</button>
+                </div>
                 <button :disabled="submitting" @click="doSubmit"
                   class="h-14 w-full rounded-full bg-bot-leaf px-10 font-medium tracking-wide text-bot-cream transition-all duration-200 hover:-translate-y-0.5 hover:bg-bot-ink hover:shadow-lg active:translate-y-0 disabled:opacity-50">
                   {{ submitting ? '提交中…' : '🌿 立即参与' }}

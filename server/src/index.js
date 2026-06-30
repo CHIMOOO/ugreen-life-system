@@ -192,6 +192,29 @@ app.post('/api/periods/:id/entries', (req, res) => {
   res.json({ ok: true, participantCount: countEntries(row.id) });
 });
 
+// 姓名是否已提交（只返回是否，**绝不返回号码**，防止凭姓名套取他人幸运数字）
+app.get('/api/periods/:id/check', (req, res) => {
+  const row = getPeriodRow(req.params.id);
+  if (!row) return res.status(404).json({ error: 'not_found' });
+  const name = (req.query.name ?? '').toString().trim();
+  if (!name) return res.json({ exists: false });
+  const exists = !!db.prepare('SELECT 1 FROM entries WHERE period_id = ? AND name = ?').get(row.id, name);
+  res.json({ exists });
+});
+
+// 撤销抽奖：按姓名删除参与记录（开奖前），并记录指纹以便追溯。不回显号码。
+app.post('/api/periods/:id/cancel', (req, res) => {
+  const row = getPeriodRow(req.params.id);
+  if (!row) return res.status(404).json({ error: 'not_found' });
+  if (row.status !== 'open') return res.status(400).json({ error: 'closed' });
+  const name = (req.body?.name ?? '').toString().trim();
+  if (!name) return res.status(400).json({ error: 'name_required' });
+  const exists = !!db.prepare('SELECT 1 FROM entries WHERE period_id = ? AND name = ?').get(row.id, name);
+  recordFingerprint(name, req.body?.fingerprint, 'cancel', row.id); // 无论是否命中都留痕
+  if (exists) db.prepare('DELETE FROM entries WHERE period_id = ? AND name = ?').run(row.id, name);
+  res.json({ ok: true, canceled: exists, participantCount: countEntries(row.id) });
+});
+
 // 下午茶评分：{ productId, level, clientId }。每个浏览器对每个商品只能评一次。
 app.post('/api/periods/:id/tea', (req, res) => {
   const row = getPeriodRow(req.params.id);
