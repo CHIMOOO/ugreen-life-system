@@ -130,6 +130,21 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
             </div>
             <ConfirmSubmitDialog :open="showConfirm" :rules="config.rulesLottery" :submitting="submitting"
               :name="pending?.name" :number="pending?.number" :accent="'#7c2d12'"
+              title="呈递卷宗" icon="❦" confirmText="呈递卷宗" cancelText="再想想"
+              subText="请核对卷宗信息并研读规则，呈递之后，开奖前对外人保密。"
+              :theme="{
+                overlay: 'bg-black/70 backdrop-blur-sm',
+                panel: 'aca-frame bg-aca-panel text-aca-ink font-garamond',
+                heading: 'font-playfair text-2xl font-bold italic text-aca-ink',
+                sub: 'italic text-aca-brown',
+                infoBox: 'border-2 border-aca-gold/50 bg-aca-paper',
+                infoLabel: 'font-playfair italic text-aca-brown',
+                infoName: 'text-aca-ink',
+                rulesLabel: 'font-playfair not-italic text-aca-burgundy',
+                rulesBox: 'border-l-4 bg-aca-paper text-aca-ink/90',
+                cancelBtn: 'border-2 border-aca-ink text-aca-ink hover:bg-aca-ink hover:text-aca-paper',
+                confirmBtn: 'bg-aca-burgundy font-playfair uppercase tracking-widest text-aca-paper hover:bg-aca-ink',
+              }"
               @confirm="confirmSubmit" @cancel="showConfirm = false" />
           </div>
           <div>

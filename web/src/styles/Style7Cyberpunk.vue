@@ -123,6 +123,20 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
             </div>
             <ConfirmSubmitDialog :open="showConfirm" :rules="config.rulesLottery" :submitting="submitting"
               :name="pending?.name" :number="pending?.number" :accent="accent(0)"
+              title="确认提交 // CONFIRM" icon="⚡" confirmText="&gt;&gt; 确认提交" cancelText="取消"
+              :theme="{
+                overlay: 'bg-black/80 backdrop-blur-sm',
+                panel: 'cyber-clip bg-cyber-bg text-cyber-fg border border-cyber-pink/60 cyber-glow-pink font-dm',
+                heading: 'font-orbitron text-2xl font-black uppercase italic tracking-wide text-cyber-pink cyber-text-pink',
+                sub: 'font-mono text-cyber-fg/70',
+                infoBox: 'cyber-clip border border-cyber-cyan/40 bg-black/60',
+                infoLabel: 'font-orbitron text-xs uppercase tracking-[0.3em] text-cyber-cyan',
+                infoName: 'font-mono text-cyber-cyan',
+                rulesLabel: 'font-orbitron text-cyber-yellow',
+                rulesBox: 'cyber-clip border-l-2 bg-black/50 font-mono text-cyber-fg/80',
+                cancelBtn: 'cyber-clip border border-cyber-cyan/50 font-orbitron uppercase tracking-widest text-cyber-cyan hover:bg-cyber-cyan/10',
+                confirmBtn: 'cyber-clip bg-cyber-pink font-orbitron uppercase tracking-widest text-black cyber-glow-pink hover:scale-[1.03]',
+              }"
               @confirm="confirmSubmit" @cancel="showConfirm = false" />
           </div>
           <div>

@@ -132,6 +132,22 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
             </div>
             <ConfirmSubmitDialog :open="showConfirm" :rules="config.rulesLottery" :submitting="submitting"
               :name="pending?.name" :number="pending?.number" :accent="accent(0)"
+              icon="🛸" title="确认参与 · JOIN"
+              subText="确认信息并阅读规则，开奖前你的幸运数字对其他人保密。"
+              confirmText="▶ 确认提交" cancelText="取消"
+              :theme="{
+                overlay: 'bg-vapor-bg/80 backdrop-blur-sm',
+                panel: 'bg-vapor-panel text-vapor-fg rounded-2xl border border-vapor-pink/50 vapor-glow font-outfit',
+                heading: 'font-orbitron text-xl font-black uppercase tracking-wider vapor-chrome',
+                sub: 'text-vapor-fg/70',
+                infoBox: 'rounded-xl border border-vapor-cyan/40 bg-black/40',
+                infoLabel: 'font-orbitron text-xs uppercase tracking-[0.2em] text-vapor-cyan',
+                infoName: 'text-vapor-fg',
+                rulesLabel: 'font-orbitron uppercase tracking-[0.2em] text-vapor-pink',
+                rulesBox: 'rounded-xl border-l-2 bg-black/30 text-vapor-fg/80',
+                cancelBtn: 'rounded-full border border-vapor-cyan/50 text-vapor-fg/80 hover:vapor-glow',
+                confirmBtn: 'rounded-full bg-gradient-to-r from-vapor-pink to-vapor-purple text-white font-orbitron uppercase tracking-[0.2em] vapor-glow hover:scale-105',
+              }"
               @confirm="confirmSubmit" @cancel="showConfirm = false" />
           </div>
           <div>

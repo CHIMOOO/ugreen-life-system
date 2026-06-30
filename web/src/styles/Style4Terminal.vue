@@ -134,6 +134,24 @@ function asciiBar(rate) {
             </div>
             <ConfirmSubmitDialog :open="showConfirm" :rules="config.rulesLottery" :submitting="submitting"
               :name="pending?.name" :number="pending?.number" :accent="'#22c55e'"
+              title="&gt; CONFIRM"
+              icon="█"
+              subText="// 确认信息后回车提交，开奖前对其他人保密。"
+              confirmText="[ RUN ] &gt; SUBMIT"
+              cancelText="[ ESC ]"
+              :theme="{
+                overlay: 'bg-black/80',
+                panel: 'term-box bg-term-panel text-term-fg font-mono',
+                heading: 'text-xl font-bold uppercase text-term-green term-glow',
+                sub: 'text-term-dim',
+                infoBox: 'border border-term-line bg-black/40',
+                infoLabel: 'text-term-amber',
+                infoName: 'text-term-green',
+                rulesLabel: 'text-term-amber',
+                rulesBox: 'border border-term-line border-l-2 bg-black/50 text-term-fg/85',
+                cancelBtn: 'border border-term-dim bg-transparent uppercase tracking-widest text-term-dim transition-colors hover:bg-term-dim hover:text-term-bg',
+                confirmBtn: 'border border-term-green bg-transparent uppercase tracking-widest text-term-green transition-colors hover:bg-term-green hover:text-term-bg',
+              }"
               @confirm="confirmSubmit" @cancel="showConfirm = false" />
           </div>
           <div>

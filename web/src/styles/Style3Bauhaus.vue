@@ -136,7 +136,24 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
               </div>
             </div>
             <ConfirmSubmitDialog :open="showConfirm" :rules="config.rulesLottery" :submitting="submitting"
-              :name="pending?.name" :number="pending?.number" :accent="'#1f6feb'"
+              :name="pending?.name" :number="pending?.number" :accent="'#D02020'"
+              title="确认参与抽奖"
+              icon="◆"
+              confirmText="立即参与 ▶"
+              cancelText="取消"
+              :theme="{
+                overlay: 'bg-bau-ink/75',
+                panel: 'bg-white text-bau-ink rounded-none border-4 border-bau-ink font-outfit shadow-bau-lg',
+                heading: 'text-2xl font-black uppercase tracking-tight text-bau-ink',
+                sub: 'text-bau-ink/70 font-medium',
+                infoBox: 'rounded-none border-4 border-bau-ink bg-bau-bg',
+                infoLabel: 'text-bau-blue font-bold uppercase tracking-widest',
+                infoName: 'text-bau-ink',
+                rulesLabel: 'text-bau-red',
+                rulesBox: 'rounded-none border-l-4 border-2 border-bau-ink bg-bau-bg text-bau-ink/80',
+                cancelBtn: 'rounded-none border-4 border-bau-ink bg-white text-bau-ink uppercase tracking-widest shadow-bau-sm transition-all hover:bg-bau-yellow active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
+                confirmBtn: 'rounded-none border-4 border-bau-ink bg-bau-red text-white uppercase tracking-widest shadow-bau-md transition-all hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
+              }"
               @confirm="confirmSubmit" @cancel="showConfirm = false" />
           </div>
           <div>

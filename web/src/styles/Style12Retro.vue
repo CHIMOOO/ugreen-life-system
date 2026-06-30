@@ -133,6 +133,20 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
             </div>
             <ConfirmSubmitDialog :open="showConfirm" :rules="config.rulesLottery" :submitting="submitting"
               :name="pending?.name" :number="pending?.number" :accent="accent(0)"
+              icon="🕺" title="确认参与抽奖" confirmText="🚀 立即参与" cancelText="再想想"
+              :theme="{
+                overlay: 'bg-retro-brown/50 backdrop-blur-sm',
+                panel: 'bg-retro-panel text-retro-ink rounded-[24px] border-2 border-retro-brown retro-shadow font-poppins',
+                heading: 'font-righteous text-2xl uppercase tracking-wide text-retro-orange',
+                sub: 'text-retro-ink/75',
+                infoBox: 'rounded-xl border-2 border-retro-brown bg-retro-bg',
+                infoLabel: 'text-retro-brown',
+                infoName: 'text-retro-ink',
+                rulesLabel: 'text-retro-teal',
+                rulesBox: 'rounded-xl border-l-4 bg-retro-bg text-retro-ink/80',
+                cancelBtn: 'rounded-full border-2 border-retro-brown bg-retro-bg text-retro-orange hover:bg-retro-mustard/40',
+                confirmBtn: 'rounded-full border-2 border-retro-brown bg-retro-orange text-retro-bg font-righteous uppercase tracking-widest retro-shadow active:translate-y-0.5',
+              }"
               @confirm="confirmSubmit" @cancel="showConfirm = false" />
           </div>
           <div>

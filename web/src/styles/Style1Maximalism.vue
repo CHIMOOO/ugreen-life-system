@@ -121,6 +121,16 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
             </div>
             <ConfirmSubmitDialog :open="showConfirm" :rules="config.rulesLottery" :submitting="submitting"
               :name="pending?.name" :number="pending?.number" :accent="accent(0)"
+              :theme="{
+                panel: 'bg-max-muted text-white rounded-3xl border-4 border-max-tertiary font-dm',
+                heading: 'font-outfit text-2xl font-black uppercase text-max-accent',
+                infoBox: 'rounded-2xl border-2 border-max-quinary/40 bg-black/30',
+                infoLabel: 'text-white/50',
+                rulesLabel: 'text-max-secondary',
+                rulesBox: 'rounded-2xl border-l-4 bg-black/30 text-white/80',
+                cancelBtn: 'rounded-full border-4 border-max-quinary/50 text-white/80 hover:bg-white/10',
+                confirmBtn: 'rounded-full bg-gradient-to-r from-[#FF3AF2] via-[#7B2FFF] to-[#00F5D4] text-white font-black uppercase tracking-widest hover:scale-105',
+              }"
               @confirm="confirmSubmit" @cancel="showConfirm = false" />
           </div>
           <div>

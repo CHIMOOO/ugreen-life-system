@@ -141,7 +141,21 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
               </div>
             </div>
             <ConfirmSubmitDialog :open="showConfirm" :rules="config.rulesLottery" :submitting="submitting"
-              :name="pending?.name" :number="pending?.number" :accent="'#7c3aed'"
+              :name="pending?.name" :number="pending?.number" :accent="'#FF6B6B'"
+              title="确认参与抽奖" icon="🎲" confirmText="🚀 立即参与" cancelText="再想想"
+              :theme="{
+                overlay: 'bg-black/60 backdrop-blur-sm',
+                panel: 'bg-white text-geo-ink rounded-[28px] border-[3px] border-geo-ink font-fredoka geo-shadow-lg',
+                heading: 'font-fredoka text-2xl font-bold text-geo-ink',
+                sub: 'text-geo-ink/60',
+                infoBox: 'rounded-2xl border-[3px] border-geo-ink bg-geo-bg',
+                infoLabel: 'text-geo-ink/50',
+                infoName: 'text-geo-ink',
+                rulesLabel: 'text-geo-teal',
+                rulesBox: 'rounded-2xl border-l-[3px] border-[3px] border-geo-ink bg-geo-bg text-geo-ink/75',
+                cancelBtn: 'rounded-full border-[3px] border-geo-ink bg-white text-geo-ink/70 hover:-translate-y-0.5 active:translate-y-0.5',
+                confirmBtn: 'rounded-full border-[3px] border-geo-ink bg-geo-coral text-white uppercase tracking-wide hover:-translate-y-0.5 active:translate-y-1 active:shadow-none',
+              }"
               @confirm="confirmSubmit" @cancel="showConfirm = false" />
           </div>
           <div>
