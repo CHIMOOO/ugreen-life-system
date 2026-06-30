@@ -21,6 +21,12 @@ const balancePositive = computed(() => data.value.balance >= 0);
 function fmt(n) {
   return Number(n).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
+
+// 分页：10 条 / 页
+const PER = 10;
+const page = ref(1);
+const totalPages = computed(() => Math.max(1, Math.ceil(data.value.items.length / PER)));
+const pagedItems = computed(() => data.value.items.slice((page.value - 1) * PER, page.value * PER));
 </script>
 
 <template>
@@ -62,7 +68,7 @@ function fmt(n) {
         <div class="aca-rule mt-2"></div>
         <p v-if="data.items.length === 0" class="mt-6 italic text-aca-brown">账本暂无记录。</p>
         <ul v-else class="mt-4 divide-y divide-aca-ink/15">
-          <li v-for="b in data.items" :key="b.id" class="flex items-start gap-4 py-4">
+          <li v-for="b in pagedItems" :key="b.id" class="flex items-start gap-4 py-4">
             <span class="w-24 shrink-0 font-garamond text-sm text-aca-brown">{{ b.date }}</span>
             <div class="min-w-0 flex-1">
               <p class="font-playfair text-lg font-semibold">{{ b.title }}</p>
@@ -74,6 +80,12 @@ function fmt(n) {
             </span>
           </li>
         </ul>
+
+        <div v-if="totalPages > 1" class="mt-6 flex items-center justify-center gap-4">
+          <button :disabled="page <= 1" @click="page--" class="border-2 border-aca-ink/40 px-4 py-1.5 font-garamond disabled:opacity-30">← 上一页</button>
+          <span class="font-garamond text-aca-brown">第 {{ page }} / {{ totalPages }} 页</span>
+          <button :disabled="page >= totalPages" @click="page++" class="border-2 border-aca-ink/40 px-4 py-1.5 font-garamond disabled:opacity-30">下一页 →</button>
+        </div>
       </section>
 
       <footer class="mt-12 text-center text-sm italic text-aca-brown">{{ config.siteName }} · 账目公开</footer>

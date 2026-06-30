@@ -24,6 +24,11 @@ onMounted(load);
 
 const periodTitle = computed(() => Object.fromEntries(periods.value.map((p) => [p.id, p.title])));
 
+const PER = 10;
+const page = ref(1);
+const totalPages = computed(() => Math.max(1, Math.ceil(ledger.value.items.length / PER)));
+const pagedItems = computed(() => ledger.value.items.slice((page.value - 1) * PER, page.value * PER));
+
 function startNew() {
   Object.assign(editing, blank());
 }
@@ -82,7 +87,7 @@ async function remove(b) {
       <div class="rounded-2xl border border-slate-200 bg-white p-5">
         <h3 class="font-bold text-slate-800">流水明细</h3>
         <div class="mt-3 space-y-2">
-          <div v-for="b in ledger.items" :key="b.id" class="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 p-3">
+          <div v-for="b in pagedItems" :key="b.id" class="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 p-3">
             <span class="w-24 shrink-0 text-sm text-slate-400">{{ b.date }}</span>
             <div class="min-w-0 flex-1">
               <p class="font-medium text-slate-800">{{ b.title }}</p>
@@ -96,6 +101,11 @@ async function remove(b) {
             <button @click="remove(b)" class="rounded-lg bg-rose-50 px-2.5 py-1 text-sm text-rose-600 hover:bg-rose-100">删除</button>
           </div>
           <p v-if="ledger.items.length === 0" class="text-sm text-slate-400">还没有账单记录。</p>
+        </div>
+        <div v-if="totalPages > 1" class="mt-4 flex items-center justify-center gap-3">
+          <button :disabled="page <= 1" @click="page--" class="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-40">← 上一页</button>
+          <span class="text-sm text-slate-500">第 {{ page }} / {{ totalPages }} 页</span>
+          <button :disabled="page >= totalPages" @click="page++" class="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-40">下一页 →</button>
         </div>
       </div>
     </div>
