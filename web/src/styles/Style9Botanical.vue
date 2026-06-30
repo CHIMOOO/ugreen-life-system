@@ -215,6 +215,12 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
           <span class="text-2xl">🍵</span> 下午茶评分
         </h2>
         <p class="mt-2 font-cormorant text-lg italic text-bot-ink/70">每款只能评一次，好评率 =（推荐+还行）÷ 总票数。{{ period.tea.ratingOpen ? '' : '（评分已结束）' }}</p>
+        <div v-if="period.bill && period.bill.show && period.bill.items.length" class="mt-5 rounded-[24px] border border-bot-sage/40 bg-bot-cream/70 p-5 bot-card">
+          <p class="font-cormorant text-lg font-semibold italic text-bot-leaf">📒 本期账单 · 合计 ¥{{ period.bill.total }}</p>
+          <div class="mt-2 flex flex-wrap gap-2">
+            <span v-for="b in period.bill.items" :key="b.id" class="rounded-full border border-bot-sage/50 bg-bot-bg px-3 py-1 text-sm text-bot-ink/70">{{ b.title }} · ¥{{ b.amount }}</span>
+          </div>
+        </div>
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
           <div v-for="(prod, pi) in period.tea.products" :key="prod.id" class="rounded-[24px] border border-bot-sage/40 bg-bot-cream/70 p-5 bot-card transition hover:-translate-y-0.5">
             <div class="flex items-center gap-4">

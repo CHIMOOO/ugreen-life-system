@@ -207,6 +207,12 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
       <section v-if="teaOn" class="mb-20">
         <h2 class="font-kalam text-3xl font-bold text-sketch-ink sm:text-4xl">🍰 下午茶评分</h2>
         <p class="mt-2 font-patrick text-lg text-sketch-ink/70">每款只能评一次，好评率 =（推荐+还行）÷ 总票数。{{ period.tea.ratingOpen ? '' : '（评分已结束）' }}</p>
+        <div v-if="period.bill && period.bill.show && period.bill.items.length" class="mt-5 border-[3px] border-dashed border-sketch-ink bg-sketch-paper p-5 shadow-sketch-soft wobbly-md">
+          <p class="inline-block bg-sketch-postit px-3 py-1 font-kalam text-lg font-bold text-sketch-ink wobbly-pill">📒 本期账单 · 合计 ¥{{ period.bill.total }}</p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <span v-for="b in period.bill.items" :key="b.id" class="border-[3px] border-sketch-ink/40 bg-white px-3 py-1 font-patrick text-sm text-sketch-ink/70 wobbly-pill">{{ b.title }} · ¥{{ b.amount }}</span>
+          </div>
+        </div>
         <div class="mt-6 grid gap-6 sm:grid-cols-2">
           <div v-for="(prod, pi) in period.tea.products" :key="prod.id"
             class="border-[3px] border-sketch-ink bg-white p-5 shadow-sketch transition-transform duration-100 hover:rotate-1"

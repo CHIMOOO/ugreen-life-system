@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { RouterLink } from 'vue-router';
 import { api } from '../api.js';
 import { usePeriodShell } from '../usePeriodShell.js';
 import { resolveStyle, STYLE_KEYS } from '../styles/registry.js';
@@ -36,17 +37,27 @@ onMounted(async () => {
 
 <template>
   <AppLoader v-if="loading" />
-  <component
-    v-else-if="period && styleComponent"
-    :is="styleComponent"
-    :period="period"
-    :config="config"
-    :submitting="submitting"
-    :submit-state="submitState"
-    :voted-products="votedProducts"
-    :rating-busy="ratingBusy"
-    @submit="onSubmit"
-    @rate="onRate"
-  />
-  <NoEvent v-else :config="config" :periods="periods" />
+  <template v-else>
+    <component
+      v-if="period && styleComponent"
+      :is="styleComponent"
+      :period="period"
+      :config="config"
+      :submitting="submitting"
+      :submit-state="submitState"
+      :voted-products="votedProducts"
+      :rating-busy="ratingBusy"
+      @submit="onSubmit"
+      @rate="onRate"
+    />
+    <NoEvent v-else :config="config" :periods="periods" />
+
+    <!-- 总账单模块：固定悬浮入口，点击查看流水（详情页为学院风） -->
+    <RouterLink
+      v-if="config && config.billModuleEnabled !== false"
+      to="/bill"
+      class="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/90 px-5 py-3 font-bold text-slate-800 shadow-lg backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-white"
+    >📒 总账单</RouterLink>
+  </template>
 </template>
+

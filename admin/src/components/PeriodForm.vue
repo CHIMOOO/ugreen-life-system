@@ -17,7 +17,7 @@ const isNew = computed(() => !props.period?.id);
 function blank() {
   return {
     title: '', style: 'style1', lotteryEnabled: true, teaEnabled: false,
-    teaRatingHours: 24, prizes: [{ name: '', qty: 1, image: null }], products: [],
+    teaRatingHours: 24, billShow: 'inherit', prizes: [{ name: '', qty: 1, image: null }], products: [],
   };
 }
 function loadFrom(p) {
@@ -28,6 +28,7 @@ function loadFrom(p) {
   f.lotteryEnabled = !!p.lotteryEnabled;
   f.teaEnabled = !!p.teaEnabled;
   f.teaRatingHours = p.tea?.ratingHours || 24;
+  f.billShow = p.billShow || 'inherit';
   // products: [{id, amount}]，amount=本期实际金额（默认套用商品预设价）
   f.products = Array.isArray(p.productItems)
     ? p.productItems.map((x) => ({ id: x.id, amount: x.amount ?? '' }))
@@ -79,6 +80,7 @@ async function save() {
     title: f.title.trim(), style: f.style,
     lotteryEnabled: f.lotteryEnabled, teaEnabled: f.teaEnabled,
     teaRatingHours: Number(f.teaRatingHours) || 24,
+    billShow: f.billShow,
     prizes: f.prizes.map((z) => ({ name: z.name, qty: Number(z.qty) || 1, image: z.image })),
     products: f.products.map((x) => ({ id: x.id, amount: x.amount })),
   };
@@ -147,10 +149,20 @@ async function save() {
     <!-- 下午茶 -->
     <div v-if="f.teaEnabled" class="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
       <h3 class="text-sm font-semibold text-amber-800">🍰 下午茶设置</h3>
-      <label class="mt-3 block max-w-xs">
-        <span class="text-sm font-medium text-slate-600">评分有效时长（小时）</span>
-        <input v-model="f.teaRatingHours" type="number" min="1" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:border-amber-500" />
-      </label>
+      <div class="mt-3 grid gap-3 sm:grid-cols-2">
+        <label class="block">
+          <span class="text-sm font-medium text-slate-600">评分有效时长（小时）</span>
+          <input v-model="f.teaRatingHours" type="number" min="1" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:border-amber-500" />
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium text-slate-600">本期账单显示</span>
+          <select v-model="f.billShow" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:border-amber-500">
+            <option value="inherit">跟随系统设置</option>
+            <option value="on">显示</option>
+            <option value="off">隐藏</option>
+          </select>
+        </label>
+      </div>
 
       <div class="mt-4 flex items-center justify-between">
         <p class="text-sm font-medium text-slate-600">本期录入的下午茶商品（从商品库勾选）</p>

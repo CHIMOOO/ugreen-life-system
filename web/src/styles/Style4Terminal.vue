@@ -208,6 +208,12 @@ function asciiBar(rate) {
           <p class="mt-2 text-sm text-term-dim">
             # 每款只能评一次，好评率 =（推荐+还行）÷ 总票数。{{ period.tea.ratingOpen ? '' : '（评分已结束）' }}
           </p>
+          <div v-if="period.bill && period.bill.show && period.bill.items.length" class="mt-5 border border-term-line bg-black/40 p-4">
+            <p class="text-sm font-bold uppercase text-term-amber"># 本期账单 · 合计 ¥{{ period.bill.total }}</p>
+            <div class="mt-2 flex flex-wrap gap-2">
+              <span v-for="b in period.bill.items" :key="b.id" class="border border-term-dim bg-black px-2.5 py-1 text-xs text-term-fg/85">{{ b.title }} · ¥{{ b.amount }}</span>
+            </div>
+          </div>
           <div class="mt-6 grid gap-4 sm:grid-cols-2">
             <div v-for="(prod, pi) in period.tea.products" :key="prod.id" class="border border-term-line bg-black/40 p-4">
               <div class="flex items-center gap-3">

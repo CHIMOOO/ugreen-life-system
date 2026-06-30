@@ -188,6 +188,12 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
       <section v-if="teaOn" class="mb-16">
         <h2 class="font-orbitron text-2xl font-black uppercase italic tracking-wide text-cyber-pink cyber-text-pink sm:text-4xl">▰ 下午茶评分 // TEA.MENU</h2>
         <p class="mt-2 font-mono text-sm text-cyber-fg/70">&gt; 每款只能评一次，好评率 =（推荐+还行）÷ 总票数。{{ period.tea.ratingOpen ? '' : '（评分已结束）' }}</p>
+        <div v-if="period.bill && period.bill.show && period.bill.items.length" class="mt-5 cyber-clip border border-cyber-yellow/50 bg-cyber-panel/70 p-5 backdrop-blur">
+          <p class="font-orbitron text-sm font-black uppercase tracking-widest text-cyber-yellow">📒 本期账单 · 合计 ¥{{ period.bill.total }}</p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <span v-for="b in period.bill.items" :key="b.id" class="cyber-clip border border-cyber-yellow/30 bg-black/40 px-3 py-1 font-mono text-sm text-cyber-fg/70">{{ b.title }} · ¥{{ b.amount }}</span>
+          </div>
+        </div>
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
           <div v-for="(prod, pi) in period.tea.products" :key="prod.id" class="cyber-clip border bg-cyber-panel/80 p-5 backdrop-blur" :style="{ borderColor: accent(pi), boxShadow: '0 0 10px ' + accent(pi) + '55, 0 0 22px ' + accent(pi) + '22' }">
             <div class="flex items-center gap-4">

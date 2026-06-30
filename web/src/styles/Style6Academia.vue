@@ -221,6 +221,14 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
         </h2>
         <div class="aca-rule mt-3"></div>
         <p class="mt-4 italic text-aca-brown">每款仅可品评一次，好评率 =（推荐 + 还行）÷ 总票数。{{ period.tea.ratingOpen ? '' : '（评分已结束）' }}</p>
+        <div v-if="period.bill && period.bill.show && period.bill.items.length" class="mt-5 border-2 border-aca-gold/50 bg-aca-panel p-4">
+          <p class="font-playfair text-base font-bold italic text-aca-burgundy">📒 本期账单 · 合计 ¥{{ period.bill.total }}</p>
+          <ul class="mt-2 space-y-1">
+            <li v-for="b in period.bill.items" :key="b.id" class="text-sm italic text-aca-brown">
+              <span class="mr-1 not-italic text-aca-gold">·</span>{{ b.title }} · ¥{{ b.amount }}
+            </li>
+          </ul>
+        </div>
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
           <div v-for="(prod, pi) in period.tea.products" :key="prod.id" class="aca-frame bg-aca-panel p-5">
             <div class="flex items-center gap-4">

@@ -9,8 +9,9 @@ import {
   db, nowIso, STYLE_KEYS,
   getConfig, getSetting, setSetting,
   countEntries, listEntries,
-  productsForPeriod, productRatings, setPeriodProducts, productInPeriod,
+  productsForPeriod, productRatings, setPeriodProducts, productInPeriod, periodProductsTotal,
   activatePeriod, getActivePeriodRow,
+  ledger, billsForPeriod, billShowEffective,
 } from './db.js';
 import { computeResult, normalizePrizes } from './lottery.js';
 
@@ -73,6 +74,8 @@ function serializePeriod(row, { withResult = false, withEntries = false, teaExtr
     participantCount: countEntries(row.id),
     result: null,
     tea: teaEnabled ? teaPayload(row, teaExtra) : null,
+    bill: { show: billShowEffective(row), ...billsForPeriod(row.id) },
+    billShow: row.bill_show || 'inherit',
   };
   if (withResult && row.status === 'drawn' && row.result) {
     data.result = JSON.parse(row.result);
@@ -213,6 +216,8 @@ app.put('/api/admin/config', adminAuth, (req, res) => {
   if (b.teaShowExtra !== undefined) setSetting('tea_show_extra', b.teaShowExtra ? '1' : '0');
   if (b.lotteryModuleEnabled !== undefined) setSetting('lottery_module_enabled', b.lotteryModuleEnabled ? '1' : '0');
   if (b.teaModuleEnabled !== undefined) setSetting('tea_module_enabled', b.teaModuleEnabled ? '1' : '0');
+  if (b.billModuleEnabled !== undefined) setSetting('bill_module_enabled', b.billModuleEnabled ? '1' : '0');
+  if (b.periodBillShow !== undefined) setSetting('period_bill_show', b.periodBillShow ? '1' : '0');
   res.json(getConfig());
 });
 
@@ -314,7 +319,8 @@ function readPeriodInput(body) {
   let hours = parseInt(body?.teaRatingHours, 10);
   if (!Number.isFinite(hours) || hours < 1) hours = 24;
   const closeAt = new Date(Date.now() + hours * 3600 * 1000).toISOString();
-  return { title, style, lotteryEnabled, teaEnabled, prizes, hours, closeAt };
+  const billShow = ['inherit', 'on', 'off'].includes(body?.billShow) ? body.billShow : 'inherit';
+  return { title, style, lotteryEnabled, teaEnabled, prizes, hours, closeAt, billShow };
 }
 
 app.post('/api/admin/periods', adminAuth, (req, res) => {
@@ -322,10 +328,10 @@ app.post('/api/admin/periods', adminAuth, (req, res) => {
   if (!i.title) return res.status(400).json({ error: 'title_required' });
   const info = db
     .prepare(
-      `INSERT INTO periods (title, style, lottery_enabled, tea_enabled, status, prizes, tea_rating_hours, tea_close_at, created_at)
-       VALUES (?, ?, ?, ?, 'open', ?, ?, ?, ?)`
+      `INSERT INTO periods (title, style, lottery_enabled, tea_enabled, status, prizes, tea_rating_hours, tea_close_at, bill_show, created_at)
+       VALUES (?, ?, ?, ?, 'open', ?, ?, ?, ?, ?)`
     )
-    .run(i.title, i.style, i.lotteryEnabled, i.teaEnabled, i.prizes, i.hours, i.closeAt, nowIso());
+    .run(i.title, i.style, i.lotteryEnabled, i.teaEnabled, i.prizes, i.hours, i.closeAt, i.billShow, nowIso());
   setPeriodProducts(info.lastInsertRowid, req.body?.products ?? req.body?.productIds);
   if (req.body?.activate) activatePeriod(info.lastInsertRowid);
   const row = getPeriodRow(info.lastInsertRowid);
@@ -343,8 +349,8 @@ app.put('/api/admin/periods/:id', adminAuth, (req, res) => {
   const keepClose = req.body?.teaRatingHours == null && row.tea_close_at ? row.tea_close_at : i.closeAt;
   const keepHours = req.body?.teaRatingHours == null ? row.tea_rating_hours : i.hours;
   db.prepare(
-    `UPDATE periods SET title=?, style=?, lottery_enabled=?, tea_enabled=?, prizes=?, tea_rating_hours=?, tea_close_at=? WHERE id=?`
-  ).run(i.title, i.style, i.lotteryEnabled, i.teaEnabled, i.prizes, keepHours, keepClose, row.id);
+    `UPDATE periods SET title=?, style=?, lottery_enabled=?, tea_enabled=?, prizes=?, tea_rating_hours=?, tea_close_at=?, bill_show=? WHERE id=?`
+  ).run(i.title, i.style, i.lotteryEnabled, i.teaEnabled, i.prizes, keepHours, keepClose, i.billShow, row.id);
   if (req.body?.products !== undefined || req.body?.productIds !== undefined)
     setPeriodProducts(row.id, req.body.products ?? req.body.productIds);
   const updated = getPeriodRow(row.id);
@@ -415,6 +421,60 @@ const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 app.post('/api/admin/upload', adminAuth, upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'no_file' });
   res.json({ url: `/uploads/${req.file.filename}` });
+});
+
+// ================= 账单 =================
+function readBillInput(body) {
+  const date = (body?.date ?? '').toString().trim() || new Date().toISOString().slice(0, 10);
+  const title = (body?.title ?? '').toString().trim();
+  const kind = body?.kind === 'income' ? 'income' : 'expense';
+  let amount = parseFloat(body?.amount);
+  if (!Number.isFinite(amount)) amount = 0;
+  amount = Math.round(amount * 100) / 100;
+  const note = (body?.note ?? '').toString();
+  let periodId = body?.periodId;
+  periodId = periodId === '' || periodId == null ? null : Number(periodId);
+  if (periodId != null && !Number.isInteger(periodId)) periodId = null;
+  return { date, title, kind, amount, note, periodId };
+}
+
+// 公开：总账单流水 + 收入/支出/结余/垫付
+app.get('/api/bills', (req, res) => res.json(ledger()));
+
+app.get('/api/admin/bills', adminAuth, (req, res) => res.json(ledger()));
+
+app.post('/api/admin/bills', adminAuth, (req, res) => {
+  const i = readBillInput(req.body);
+  if (!i.title) return res.status(400).json({ error: 'title_required' });
+  db.prepare('INSERT INTO bills (date, title, kind, amount, note, period_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .run(i.date, i.title, i.kind, i.amount, i.note, i.periodId, nowIso());
+  res.json(ledger());
+});
+
+app.put('/api/admin/bills/:id', adminAuth, (req, res) => {
+  const b = db.prepare('SELECT * FROM bills WHERE id = ?').get(req.params.id);
+  if (!b) return res.status(404).json({ error: 'not_found' });
+  const i = readBillInput({
+    date: req.body?.date ?? b.date,
+    title: req.body?.title ?? b.title,
+    kind: req.body?.kind ?? b.kind,
+    amount: req.body?.amount ?? b.amount,
+    note: req.body?.note ?? b.note,
+    periodId: req.body?.periodId !== undefined ? req.body.periodId : b.period_id,
+  });
+  db.prepare('UPDATE bills SET date=?, title=?, kind=?, amount=?, note=?, period_id=? WHERE id=?')
+    .run(i.date, i.title, i.kind, i.amount, i.note, i.periodId, b.id);
+  res.json(ledger());
+});
+
+app.delete('/api/admin/bills/:id', adminAuth, (req, res) => {
+  db.prepare('DELETE FROM bills WHERE id = ?').run(Number(req.params.id));
+  res.json(ledger());
+});
+
+// 账单自动计算：某期商品「实际金额」合计
+app.get('/api/admin/periods/:id/bill-auto', adminAuth, (req, res) => {
+  res.json({ total: periodProductsTotal(Number(req.params.id)) });
 });
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));

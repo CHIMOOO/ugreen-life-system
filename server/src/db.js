@@ -78,9 +78,22 @@ db.exec(`
     UNIQUE (period_id, product_id, client_id)
   );
 
+  -- 账单流水（总账单）。kind: income 入账/收入，expense 支出/消费。可关联某一期。
+  CREATE TABLE IF NOT EXISTS bills (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    date       TEXT    NOT NULL,
+    title      TEXT    NOT NULL,
+    kind       TEXT    NOT NULL DEFAULT 'expense',
+    amount     REAL    NOT NULL DEFAULT 0,
+    note       TEXT,
+    period_id  INTEGER,
+    created_at TEXT    NOT NULL
+  );
+
   CREATE INDEX IF NOT EXISTS idx_entries_period ON entries(period_id);
   CREATE INDEX IF NOT EXISTS idx_pp_period ON period_products(period_id);
   CREATE INDEX IF NOT EXISTS idx_ratings_pp ON tea_ratings(period_id, product_id);
+  CREATE INDEX IF NOT EXISTS idx_bills_period ON bills(period_id);
 `);
 
 // 兼容旧库：缺失的列补上（幂等）
@@ -92,6 +105,7 @@ addColumnIfMissing('tea_products', 'channel', 'TEXT');
 addColumnIfMissing('tea_products', 'price', 'TEXT');
 addColumnIfMissing('tea_products', 'qty', 'INTEGER');
 addColumnIfMissing('period_products', 'amount', 'TEXT');
+addColumnIfMissing('periods', 'bill_show', "TEXT DEFAULT 'inherit'"); // inherit|on|off：本期账单是否展示
 
 export function nowIso() {
   return new Date().toISOString();
@@ -113,6 +127,8 @@ const DEFAULT_SETTINGS = {
   lottery_module_enabled: '1', // 系统级：是否开放抽奖模块（关闭后用户彻底看不到抽奖及其规则）
   tea_module_enabled: '1', // 系统级：是否开放下午茶评分模块
   name_placeholder: '陈老板', // 趣味设置：抽奖姓名输入框的占位提示
+  bill_module_enabled: '1', // 系统级：首页是否显示「总账单」模块
+  period_bill_show: '1', // 系统级：默认是否在下午茶里显示「本期账单」（期数可覆盖）
   rules_lottery:
     '每人填写姓名与一个 1-9999 的幸运数字（姓名、数字均不可重复）。开奖时把所有幸运数字相加得到 S，参与人数为 N，余数 R = S mod N；把所有人按幸运数字从小到大排序，第 R+1 位即中奖。多个名额时抽出一位后移出奖池，对剩余的人重新求和取余，依次产生下一位。结果公开可复现。',
   rules_tea:
@@ -145,6 +161,8 @@ export function getConfig() {
     lotteryModuleEnabled: getSetting('lottery_module_enabled') !== '0',
     teaModuleEnabled: getSetting('tea_module_enabled') !== '0',
     namePlaceholder: getSetting('name_placeholder'),
+    billModuleEnabled: getSetting('bill_module_enabled') !== '0',
+    periodBillShow: getSetting('period_bill_show') !== '0',
     rulesLottery: getSetting('rules_lottery'),
     rulesTea: getSetting('rules_tea'),
   };
@@ -251,4 +269,48 @@ export function activatePeriod(id) {
 }
 export function getActivePeriodRow() {
   return db.prepare('SELECT * FROM periods WHERE is_active = 1 ORDER BY id DESC LIMIT 1').get();
+}
+
+// ---------- 账单 ----------
+
+const round2 = (n) => Math.round(n * 100) / 100;
+
+function billRow(b) {
+  return {
+    id: b.id, date: b.date, title: b.title, kind: b.kind,
+    amount: b.amount, note: b.note || '', periodId: b.period_id ?? null, createdAt: b.created_at,
+  };
+}
+
+// 总账单：全部流水 + 收入/支出/结余。结余<0 即存在垫付。
+export function ledger() {
+  const rows = db.prepare('SELECT * FROM bills ORDER BY date DESC, id DESC').all();
+  let income = 0, expense = 0;
+  for (const b of rows) {
+    if (b.kind === 'income') income += b.amount;
+    else expense += b.amount;
+  }
+  const balance = round2(income - expense);
+  return {
+    items: rows.map(billRow),
+    income: round2(income),
+    expense: round2(expense),
+    balance,
+    advance: balance < 0 ? round2(-balance) : 0, // 当前垫付金额
+  };
+}
+
+export function billsForPeriod(periodId) {
+  const rows = db.prepare('SELECT * FROM bills WHERE period_id = ? ORDER BY date DESC, id DESC').all(periodId);
+  let total = 0;
+  for (const b of rows) total += b.kind === 'income' ? -b.amount : b.amount; // 本期净支出
+  return { items: rows.map(billRow), total: round2(total) };
+}
+
+// 本期账单是否展示：期数级 bill_show（inherit|on|off）覆盖系统级 period_bill_show
+export function billShowEffective(row) {
+  const v = row.bill_show || 'inherit';
+  if (v === 'on') return true;
+  if (v === 'off') return false;
+  return getSetting('period_bill_show') !== '0';
 }

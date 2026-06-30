@@ -5,6 +5,7 @@ import { admin, STYLE_OPTIONS } from '../api.js';
 const f = reactive({
   departmentName: '', siteName: '', homeStyleMode: 'follow', homeFixedStyle: 'style1',
   lotteryModuleEnabled: true, teaModuleEnabled: true,
+  billModuleEnabled: true, periodBillShow: true,
   namePlaceholder: '', teaShowExtra: false, rulesLottery: '', rulesTea: '',
 });
 const saving = ref(false);
@@ -57,6 +58,14 @@ const MODES = [
         <label class="inline-flex items-center gap-2">
           <input v-model="f.teaModuleEnabled" type="checkbox" class="h-4 w-4 rounded accent-indigo-600" />
           <span class="text-sm font-medium text-slate-700">开放下午茶评分模块</span>
+        </label>
+        <label class="inline-flex items-center gap-2">
+          <input v-model="f.billModuleEnabled" type="checkbox" class="h-4 w-4 rounded accent-indigo-600" />
+          <span class="text-sm font-medium text-slate-700">首页显示总账单模块</span>
+        </label>
+        <label class="inline-flex items-center gap-2">
+          <input v-model="f.periodBillShow" type="checkbox" class="h-4 w-4 rounded accent-indigo-600" />
+          <span class="text-sm font-medium text-slate-700">默认显示本期账单</span>
         </label>
       </div>
     </div>

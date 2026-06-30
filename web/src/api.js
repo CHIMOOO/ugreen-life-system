@@ -30,6 +30,7 @@ export const api = {
   config: () => req('/api/config'),
   active: () => req('/api/active'),
   periods: () => req('/api/periods'),
+  bills: () => req('/api/bills'),
   period: (id) => req('/api/periods/' + id),
   submit: (id, body) => jsonPost('/api/periods/' + id + '/entries', body),
   // body: { productId, level, clientId }

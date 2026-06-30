@@ -2,8 +2,8 @@
 import { db, nowIso, setSetting, activatePeriod, setPeriodProducts } from './db.js';
 import { computeResult, normalizePrizes } from './lottery.js';
 
-db.exec('DELETE FROM entries; DELETE FROM tea_ratings; DELETE FROM period_products; DELETE FROM tea_products; DELETE FROM periods;');
-db.exec("DELETE FROM sqlite_sequence WHERE name IN ('periods','entries','tea_ratings','tea_products','period_products');");
+db.exec('DELETE FROM entries; DELETE FROM tea_ratings; DELETE FROM period_products; DELETE FROM tea_products; DELETE FROM periods; DELETE FROM bills;');
+db.exec("DELETE FROM sqlite_sequence WHERE name IN ('periods','entries','tea_ratings','tea_products','period_products','bills');");
 
 // 系统配置
 setSetting('department_name', 'AIoT客户端组');
@@ -82,7 +82,7 @@ const p1 = seedPeriod({
   },
 });
 
-seedPeriod({
+const p2 = seedPeriod({
   title: '第二期 · 手绘随笔',
   style: 'style2',
   lottery: true,
@@ -117,6 +117,16 @@ seedPeriod({
     { name: '李四', number: 256 }, { name: '周五', number: 1357 },
   ],
 });
+
+// ---- 账单流水 ----
+const insBill = db.prepare(
+  'INSERT INTO bills (date, title, kind, amount, note, period_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+);
+const day = (offset) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
+insBill.run(day(-30), '部门下午茶基金充值', 'income', 1000, '每人 100 共 10 人', null, nowIso());
+insBill.run(day(-20), '第一期下午茶采购', 'expense', 86, '提拉米苏 + 芝士 + 草莓', p1, nowIso());
+insBill.run(day(-10), '第二期下午茶采购', 'expense', 120, '咖啡 + 千层 + 蛋挞', p2, nowIso());
+insBill.run(day(-5), '阿强垫付一次性纸杯', 'expense', 35, '阿强先垫，待报销', null, nowIso());
 
 // 当前期（同时只有一期在线）
 activatePeriod(p1);

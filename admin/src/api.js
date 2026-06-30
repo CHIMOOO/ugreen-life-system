@@ -49,6 +49,12 @@ export const admin = {
   remove: (id) => req('/api/admin/periods/' + id, { method: 'DELETE' }),
   activate: (id) => req('/api/admin/periods/' + id + '/activate', { method: 'POST', body: {} }),
   deactivate: (id) => req('/api/admin/periods/' + id + '/deactivate', { method: 'POST', body: {} }),
+  billAuto: (id) => req('/api/admin/periods/' + id + '/bill-auto'),
+  // 账单
+  bills: () => req('/api/admin/bills'),
+  createBill: (b) => req('/api/admin/bills', { method: 'POST', body: b }),
+  updateBill: (id, b) => req('/api/admin/bills/' + id, { method: 'PUT', body: b }),
+  deleteBill: (id) => req('/api/admin/bills/' + id, { method: 'DELETE' }),
   simulate: (id) => req('/api/admin/periods/' + id + '/simulate', { method: 'POST', body: {} }),
   draw: (id) => req('/api/admin/periods/' + id + '/draw', { method: 'POST', body: {} }),
   reopen: (id) => req('/api/admin/periods/' + id + '/reopen', { method: 'POST', body: {} }),
