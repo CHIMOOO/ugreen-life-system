@@ -22,14 +22,19 @@ const { submitting, submitState, votedProducts, ratingBusy, nameStatus, onSubmit
 const styleComponent = computed(() => (period.value ? resolveStyle(period.value.style) : null));
 
 onMounted(async () => {
-  const [cfgRes, perRes] = await Promise.all([api.config(), api.period(id)]);
-  config.value = cfgRes.data || {};
-  if (!perRes.ok || !perRes.data || perRes.data.error) notFound.value = true;
-  else {
-    period.value = perRes.data;
-    syncLocal();
+  try {
+    const [cfgRes, perRes] = await Promise.all([api.config(), api.period(id)]);
+    config.value = cfgRes.data || {};
+    if (!perRes.ok || !perRes.data || perRes.data.error) notFound.value = true;
+    else {
+      period.value = perRes.data;
+      syncLocal();
+    }
+  } catch {
+    notFound.value = true; // 后端不可达：显示「找不到这一期」而非卡在 Loading
+  } finally {
+    loading.value = false;
   }
-  loading.value = false;
 });
 </script>
 

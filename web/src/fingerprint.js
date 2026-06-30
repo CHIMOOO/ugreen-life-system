@@ -245,16 +245,19 @@ export function initFingerprint() {
 }
 
 // 提交时取指纹；首次会等待采集完成，之后走缓存。
+// 加 1.5s 超时兜底：个别环境下 Audio/WebGL 采集偏慢，避免「提交」按钮长时间转圈。
 export async function getFingerprint() {
   if (cached) return cached;
-  if (inflight) {
-    const r = await inflight;
-    if (r) return r;
-  }
+  const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 1500));
   try {
-    cached = await compute();
+    const r = await Promise.race([inflight || compute(), timeout]);
+    if (r) {
+      cached = r;
+      return r;
+    }
   } catch {
-    cached = { id: 'na', summary: '采集失败', details: {} };
+    /* 落到下面的占位兜底 */
   }
-  return cached;
+  // 超时/失败：返回占位但不缓存，预热的采集完成后下次提交即用完整指纹
+  return cached || { id: 'na', summary: '采集中', details: {} };
 }

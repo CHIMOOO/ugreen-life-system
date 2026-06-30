@@ -10,16 +10,22 @@ const data = ref({ items: [], income: 0, expense: 0, balance: 0, advance: 0 });
 
 const periodTitle = ref({}); // id -> title
 onMounted(async () => {
-  const [cfg, led, periods] = await Promise.all([api.config(), api.bills(), api.periods()]);
-  config.value = cfg.data || {};
-  if (led.data) data.value = led.data;
-  for (const p of periods.data || []) periodTitle.value[p.id] = p.title;
-  loading.value = false;
+  try {
+    const [cfg, led, periods] = await Promise.all([api.config(), api.bills(), api.periods()]);
+    config.value = cfg.data || {};
+    if (led.data) data.value = led.data;
+    for (const p of periods.data || []) periodTitle.value[p.id] = p.title;
+  } catch {
+    /* 后端不可达：保留默认空账本，避免卡在 Loading */
+  } finally {
+    loading.value = false;
+  }
 });
 
 const balancePositive = computed(() => data.value.balance >= 0);
 function fmt(n) {
-  return Number(n).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const v = Number(n);
+  return (Number.isFinite(v) ? v : 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
 // 分页：10 条 / 页

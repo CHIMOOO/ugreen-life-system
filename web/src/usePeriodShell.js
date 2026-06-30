@@ -15,6 +15,7 @@ export function usePeriodShell(periodRef) {
   const ratingBusy = ref({});
   const nameStatus = ref({ exists: false, checking: false }); // 当前姓名是否已提交
   let checkTimer = null;
+  let checkSeq = 0; // 查重请求序号：只采纳最后一次的结果，避免慢请求覆盖快请求
 
   function syncLocal() {
     const p = periodRef.value;
@@ -39,6 +40,8 @@ export function usePeriodShell(periodRef) {
       submitState.value = { status: 'success', message: '提交成功，请等待开奖！' };
       setStoredName(payload.name); // 记住姓名，之后各页自动回填
       markJoined(p.id);
+      clearTimeout(checkTimer); // 提交成功后取消未落定的查重，避免迟到结果刷新状态
+      nameStatus.value = { exists: false, checking: false };
     } else {
       submitState.value = { status: 'error', message: submitErrorText(data?.error) };
     }
@@ -70,10 +73,12 @@ export function usePeriodShell(periodRef) {
       return;
     }
     nameStatus.value = { ...nameStatus.value, checking: true };
+    const seq = ++checkSeq;
     checkTimer = setTimeout(async () => {
       const p = periodRef.value;
       if (!p) return;
       const { data } = await api.checkName(p.id, nm);
+      if (seq !== checkSeq) return; // 已有更新的查重发出，丢弃这条过期结果
       nameStatus.value = { exists: !!data?.exists, checking: false };
     }, 400);
   }

@@ -27,12 +27,17 @@ const styleComponent = computed(() => {
 });
 
 onMounted(async () => {
-  const [cfgRes, actRes, listRes] = await Promise.all([api.config(), api.active(), api.periods()]);
-  config.value = cfgRes.data || {};
-  period.value = actRes.data?.period || null;
-  periods.value = Array.isArray(listRes.data) ? listRes.data : [];
-  if (period.value) syncLocal();
-  loading.value = false;
+  try {
+    const [cfgRes, actRes, listRes] = await Promise.all([api.config(), api.active(), api.periods()]);
+    config.value = cfgRes.data || {};
+    period.value = actRes.data?.period || null;
+    periods.value = Array.isArray(listRes.data) ? listRes.data : [];
+    if (period.value) syncLocal();
+  } catch {
+    config.value = config.value || {}; // 后端不可达：退化为无活动空态，避免卡在 Loading
+  } finally {
+    loading.value = false;
+  }
 });
 </script>
 
