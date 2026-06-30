@@ -64,6 +64,9 @@ function confirmSubmit() {
 watch(() => props.submitState.status, (s) => { if (s === 'error') showConfirm.value = false; });
 const errorMsg = computed(() => localError.value || (props.submitState.status === 'error' ? props.submitState.message : ''));
 function doRate(productId, level) { emit('rate', { productId, level }); }
+// 「已参与」面板撤销：两步确认，避免误点丢失幸运数字（数字不可找回）
+const confirmCancel = ref(false);
+function doCancel() { emit('cancel'); confirmCancel.value = false; }
 </script>
 
 <template>
@@ -185,6 +188,22 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
           <h2 class="mt-6 text-4xl font-black uppercase tracking-tight">提交成功</h2>
           <p class="mt-4 text-lg font-medium leading-relaxed text-white/90">你的幸运数字已锁定，开奖前对其他人保密。耐心等待开奖吧～</p>
           <p class="mt-4 inline-block border-2 border-white bg-bau-red px-4 py-2 text-sm font-black uppercase tracking-widest">当前共 {{ period.participantCount }} 人参与</p>
+          <div class="mt-8 border-t-4 border-white/40 pt-6">
+            <template v-if="!confirmCancel">
+              <p class="font-medium leading-relaxed text-white/85">提交错了？可以撤销本次抽奖后重新参与（撤销不会显示你的号码）。</p>
+              <button @click="confirmCancel = true"
+                class="mt-4 rounded-none border-2 border-white bg-bau-blue px-5 py-2.5 text-sm font-black uppercase tracking-widest text-white shadow-bau-sm transition-all duration-200 ease-out hover:bg-bau-red active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">撤销抽奖</button>
+            </template>
+            <template v-else>
+              <p class="font-bold leading-relaxed text-bau-yellow">确认撤销？撤销后幸运数字将释放，且<u>不可找回</u>。</p>
+              <div class="mt-4 flex justify-center gap-3">
+                <button @click="confirmCancel = false"
+                  class="rounded-none border-2 border-white bg-white px-5 py-2.5 text-sm font-black uppercase tracking-widest text-bau-ink shadow-bau-sm transition-all duration-200 ease-out hover:bg-bau-yellow active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">再想想</button>
+                <button @click="doCancel"
+                  class="rounded-none border-2 border-white bg-bau-red px-5 py-2.5 text-sm font-black uppercase tracking-widest text-white shadow-bau-md transition-all duration-200 ease-out hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">确认撤销</button>
+              </div>
+            </template>
+          </div>
         </div>
 
         <!-- 开奖结果 -->

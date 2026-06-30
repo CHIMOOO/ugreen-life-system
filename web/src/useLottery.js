@@ -99,11 +99,20 @@ export function getClientId() {
 }
 
 // ---------- 本地参与/评分记录 ----------
+// joined_<id> 存「本期提交时用的姓名」，撤销时据此精确删除对应记录。
+// 旧版本只存标记位 '1'，此处对任意非空值都视为已参与，并在取名时回退到全局姓名。
 export function alreadyJoined(periodId) {
-  try { return localStorage.getItem('joined_' + periodId) === '1'; } catch { return false; }
+  try { return !!localStorage.getItem('joined_' + periodId); } catch { return false; }
 }
-export function markJoined(periodId) {
-  try { localStorage.setItem('joined_' + periodId, '1'); } catch { /* ignore */ }
+export function markJoined(periodId, name) {
+  try { localStorage.setItem('joined_' + periodId, String(name || '').trim() || '1'); } catch { /* ignore */ }
+}
+// 本期提交时用的姓名：用于撤销。兼容旧标记位 '1'（回退到全局记忆的姓名）。
+export function joinedName(periodId) {
+  try {
+    const v = localStorage.getItem('joined_' + periodId);
+    return v && v !== '1' ? v : getStoredName();
+  } catch { return getStoredName(); }
 }
 export function hasVotedProduct(periodId, productId) {
   try { return localStorage.getItem(`tea_${periodId}_${productId}`) === '1'; } catch { return false; }

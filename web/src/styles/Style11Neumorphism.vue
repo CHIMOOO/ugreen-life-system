@@ -61,6 +61,9 @@ function confirmSubmit() {
 watch(() => props.submitState.status, (s) => { if (s === 'error') showConfirm.value = false; });
 const errorMsg = computed(() => localError.value || (props.submitState.status === 'error' ? props.submitState.message : ''));
 function doRate(productId, level) { emit('rate', { productId, level }); }
+// 「已参与」面板撤销：两步确认，避免误点丢失幸运数字（数字不可找回）
+const confirmCancel = ref(false);
+function doCancel() { emit('cancel'); confirmCancel.value = false; }
 </script>
 
 <template>
@@ -167,6 +170,19 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
           <p class="mt-4 text-base text-neu-muted">你的幸运数字已锁定，开奖前对其他人保密。耐心等待开奖吧～</p>
           <div class="mt-6 flex justify-center">
             <span class="neu-pressed rounded-full px-6 py-3 text-sm font-medium text-neu-fg">当前共 <b class="font-semibold text-neu-accent">{{ period.participantCount }}</b> 人参与</span>
+          </div>
+          <div class="mx-auto mt-10 max-w-md border-t border-neu-muted/20 pt-8">
+            <template v-if="!confirmCancel">
+              <p class="text-sm leading-relaxed text-neu-muted">提交错了？可以撤销本次抽奖后重新参与（撤销不会显示你的号码）。</p>
+              <button @click="confirmCancel = true" class="neu-raised-sm mt-4 rounded-full px-6 py-2.5 text-sm font-semibold text-neu-accent transition-all duration-200 hover:-translate-y-0.5 active:neu-pressed active:translate-y-0">撤销抽奖</button>
+            </template>
+            <template v-else>
+              <p class="text-sm font-medium leading-relaxed text-rose-400">确认撤销？撤销后幸运数字将释放，且<u>不可找回</u>。</p>
+              <div class="mt-4 flex justify-center gap-3">
+                <button @click="confirmCancel = false" class="neu-raised-sm rounded-full px-6 py-2.5 text-sm font-semibold text-neu-fg transition-all duration-200 hover:-translate-y-0.5 active:neu-pressed active:translate-y-0">再想想</button>
+                <button @click="doCancel" class="neu-raised rounded-full px-6 py-2.5 text-sm font-semibold text-rose-400 transition-all duration-200 hover:-translate-y-0.5 active:neu-pressed active:translate-y-0">确认撤销</button>
+              </div>
+            </template>
           </div>
         </div>
 

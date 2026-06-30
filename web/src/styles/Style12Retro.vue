@@ -64,6 +64,9 @@ function confirmSubmit() {
 watch(() => props.submitState.status, (s) => { if (s === 'error') showConfirm.value = false; });
 const errorMsg = computed(() => localError.value || (props.submitState.status === 'error' ? props.submitState.message : ''));
 function doRate(productId, level) { emit('rate', { productId, level }); }
+// 「已参与」面板撤销：两步确认，避免误点丢失幸运数字（数字不可找回）
+const confirmCancel = ref(false);
+function doCancel() { emit('cancel'); confirmCancel.value = false; }
 </script>
 
 <template>
@@ -174,6 +177,20 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
           <div class="mx-auto mt-4 h-1.5 w-28 rounded-full retro-stripes"></div>
           <p class="mt-5 font-poppins text-lg text-retro-ink/80">你的幸运数字已锁定，开奖前对其他人保密。耐心等待开奖吧～</p>
           <p class="mt-3 inline-block rounded-full border-2 border-retro-brown bg-retro-mustard px-5 py-2 font-righteous uppercase tracking-wide text-retro-ink retro-shadow">当前共 {{ period.participantCount }} 人参与</p>
+
+          <div class="mt-8 border-t-2 border-dashed border-retro-brown/40 pt-6">
+            <template v-if="!confirmCancel">
+              <p class="font-poppins text-sm text-retro-ink/70">提交错了？可以撤销本次抽奖后重新参与（撤销不会显示你的号码）。</p>
+              <button @click="confirmCancel = true" class="mt-3 rounded-full border-2 border-retro-brown bg-retro-bg px-6 py-2 font-righteous text-sm uppercase tracking-wide text-retro-orange transition active:translate-y-0.5">撤销抽奖</button>
+            </template>
+            <template v-else>
+              <p class="font-poppins text-sm font-semibold text-retro-orange">确认撤销？撤销后幸运数字将释放，且<u>不可找回</u>。</p>
+              <div class="mt-3 flex justify-center gap-3">
+                <button @click="confirmCancel = false" class="rounded-full border-2 border-retro-brown bg-retro-bg px-6 py-2 font-righteous text-sm uppercase tracking-wide text-retro-teal transition active:translate-y-0.5 hover:bg-retro-mustard/40">再想想</button>
+                <button @click="doCancel" class="rounded-full border-2 border-retro-brown bg-retro-orange px-6 py-2 font-righteous text-sm uppercase tracking-wide text-retro-bg retro-shadow transition active:translate-y-0.5 active:shadow-none">确认撤销</button>
+              </div>
+            </template>
+          </div>
         </div>
 
         <!-- 开奖结果 -->

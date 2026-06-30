@@ -60,6 +60,9 @@ function confirmSubmit() {
 watch(() => props.submitState.status, (s) => { if (s === 'error') showConfirm.value = false; });
 const errorMsg = computed(() => localError.value || (props.submitState.status === 'error' ? props.submitState.message : ''));
 function doRate(productId, level) { emit('rate', { productId, level }); }
+// 「已参与」面板撤销：两步确认，避免误点丢失幸运数字（数字不可找回）
+const confirmCancel = ref(false);
+function doCancel() { emit('cancel'); confirmCancel.value = false; }
 </script>
 
 <template>
@@ -177,6 +180,28 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
           <p class="mt-5 inline-flex items-center gap-2 rounded-full bg-md-primary/10 px-5 py-2 text-sm font-medium text-md-primary">
             当前共 {{ period.participantCount }} 人参与
           </p>
+          <div class="mt-8 border-t border-md-outline/30 pt-6">
+            <template v-if="!confirmCancel">
+              <p class="text-sm text-md-secondary">提交错了？可以撤销本次抽奖后重新参与（撤销不会显示你的号码）。</p>
+              <button @click="confirmCancel = true"
+                class="mt-3 inline-flex h-9 items-center justify-center rounded-full border border-md-error px-5 text-sm font-medium text-md-error transition-colors duration-200 hover:bg-md-error/10">
+                撤销抽奖
+              </button>
+            </template>
+            <template v-else>
+              <p class="text-sm font-medium text-md-error">确认撤销？撤销后幸运数字将释放，且<u>不可找回</u>。</p>
+              <div class="mt-3 flex justify-center gap-3">
+                <button @click="confirmCancel = false"
+                  class="inline-flex h-10 items-center justify-center rounded-full border border-md-outline px-5 text-sm font-medium text-md-secondary transition-colors duration-200 hover:bg-md-surfaceVar">
+                  再想想
+                </button>
+                <button @click="doCancel"
+                  class="inline-flex h-10 items-center justify-center rounded-full bg-md-error px-6 text-sm font-medium text-md-onPrimary md-elev-1 transition-all duration-200 hover:brightness-110 hover:md-elev-2 active:brightness-95">
+                  确认撤销
+                </button>
+              </div>
+            </template>
+          </div>
         </div>
 
         <!-- 开奖结果 -->

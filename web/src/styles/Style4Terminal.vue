@@ -66,6 +66,10 @@ function asciiBar(rate) {
   const filled = Math.round((Number(rate) || 0) / 10);
   return '█'.repeat(Math.max(0, Math.min(10, filled))) + '░'.repeat(Math.max(0, 10 - filled));
 }
+
+// 「已参与」面板撤销：两步确认，避免误点丢失幸运数字（数字不可找回）
+const confirmCancel = ref(false);
+function doCancel() { emit('cancel'); confirmCancel.value = false; }
 </script>
 
 <template>
@@ -180,6 +184,19 @@ function asciiBar(rate) {
           <p class="mt-3 text-sm text-term-dim">// 幸运数字已锁定，开奖前对其他人保密，请耐心等待开奖。</p>
           <p class="mt-3 text-sm font-bold text-term-amber">$ participants = {{ period.participantCount }}</p>
           <p class="mt-2 text-term-green">awaiting draw<span class="term-cursor">▋</span></p>
+          <div class="mt-8 border-t border-term-line pt-6">
+            <template v-if="!confirmCancel">
+              <p class="text-sm text-term-dim">// 提交错了？可以撤销本次抽奖后重新参与（撤销不会显示你的号码）。</p>
+              <button @click="confirmCancel = true" class="mt-3 border border-term-dim bg-transparent px-5 py-2 text-xs font-bold uppercase tracking-widest text-term-dim transition-colors hover:bg-term-dim hover:text-term-bg">[ 撤销抽奖 ]</button>
+            </template>
+            <template v-else>
+              <p class="text-sm font-bold text-term-red">// WARN: 确认撤销？撤销后幸运数字将释放，且<u>不可找回</u>。</p>
+              <div class="mt-3 flex justify-center gap-3">
+                <button @click="confirmCancel = false" class="border border-term-dim bg-transparent px-5 py-2 text-xs font-bold uppercase tracking-widest text-term-dim transition-colors hover:bg-term-dim hover:text-term-bg">[ 再想想 ]</button>
+                <button @click="doCancel" class="border border-term-red bg-transparent px-5 py-2 text-xs font-bold uppercase tracking-widest text-term-red transition-colors hover:bg-term-red hover:text-term-bg">[ 确认撤销 ]</button>
+              </div>
+            </template>
+          </div>
         </div>
 
         <!-- 开奖结果 -->

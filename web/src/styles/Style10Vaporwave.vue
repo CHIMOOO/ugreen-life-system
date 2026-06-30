@@ -63,6 +63,9 @@ function confirmSubmit() {
 watch(() => props.submitState.status, (s) => { if (s === 'error') showConfirm.value = false; });
 const errorMsg = computed(() => localError.value || (props.submitState.status === 'error' ? props.submitState.message : ''));
 function doRate(productId, level) { emit('rate', { productId, level }); }
+// 「已参与」面板撤销：两步确认，避免误点丢失幸运数字（数字不可找回）
+const confirmCancel = ref(false);
+function doCancel() { emit('cancel'); confirmCancel.value = false; }
 </script>
 
 <template>
@@ -173,6 +176,22 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
           <h2 class="mt-6 font-orbitron text-3xl font-black uppercase tracking-wider vapor-chrome sm:text-4xl">提交成功！</h2>
           <p class="mt-4 text-lg text-vapor-fg/80">你的幸运数字已锁定，开奖前对其他人保密。耐心等待开奖吧～</p>
           <p class="mt-2 font-orbitron font-bold uppercase tracking-[0.2em] text-vapor-cyan">当前共 {{ period.participantCount }} 人参与</p>
+          <div class="mt-8 border-t border-vapor-pink/30 pt-6">
+            <template v-if="!confirmCancel">
+              <p class="text-vapor-fg/70">提交错了？可以撤销本次抽奖后重新参与（撤销不会显示你的号码）。</p>
+              <button @click="confirmCancel = true"
+                class="mt-3 rounded-full border border-vapor-pink/60 px-6 py-2 font-orbitron text-xs font-bold uppercase tracking-[0.2em] text-vapor-pink transition hover:vapor-glow active:scale-95">撤销抽奖</button>
+            </template>
+            <template v-else>
+              <p class="font-orbitron text-sm font-bold uppercase tracking-[0.15em] text-vapor-yellow drop-shadow-[0_0_12px_rgba(255,251,150,.6)]">确认撤销？撤销后幸运数字将释放，且<u>不可找回</u>。</p>
+              <div class="mt-3 flex justify-center gap-3">
+                <button @click="confirmCancel = false"
+                  class="rounded-full border border-vapor-cyan/50 px-6 py-2 font-orbitron text-xs font-bold uppercase tracking-[0.2em] text-vapor-fg/80 transition hover:vapor-glow active:scale-95">再想想</button>
+                <button @click="doCancel"
+                  class="rounded-full bg-gradient-to-r from-vapor-pink to-vapor-purple px-6 py-2 font-orbitron text-xs font-black uppercase tracking-[0.2em] text-white vapor-glow transition-all duration-200 hover:scale-105 active:scale-95">确认撤销</button>
+              </div>
+            </template>
+          </div>
         </div>
 
         <!-- 开奖结果 -->

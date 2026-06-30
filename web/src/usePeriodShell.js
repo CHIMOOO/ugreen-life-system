@@ -2,7 +2,7 @@ import { ref } from 'vue';
 import { api } from './api.js';
 import {
   submitErrorText, getClientId, setStoredName, getStoredName,
-  alreadyJoined, markJoined, hasVotedProduct, markVotedProduct,
+  alreadyJoined, markJoined, joinedName, hasVotedProduct, markVotedProduct,
 } from './useLottery.js';
 import { getFingerprint } from './fingerprint.js';
 
@@ -39,7 +39,7 @@ export function usePeriodShell(periodRef) {
       p.participantCount = data.participantCount;
       submitState.value = { status: 'success', message: '提交成功，请等待开奖！' };
       setStoredName(payload.name); // 记住姓名，之后各页自动回填
-      markJoined(p.id);
+      markJoined(p.id, payload.name); // 记下本期提交姓名，供「已参与」面板撤销使用
       clearTimeout(checkTimer); // 提交成功后取消未落定的查重，避免迟到结果刷新状态
       nameStatus.value = { exists: false, checking: false };
     } else {
@@ -84,10 +84,12 @@ export function usePeriodShell(periodRef) {
   }
 
   // 撤销抽奖：按姓名删除（开奖前），记录指纹追溯，绝不回显号码
+  // name 可为空（「已参与」面板的撤销按钮不带参数）：回退到本期提交时记下的姓名。
   async function onCancel(name) {
     const p = periodRef.value;
-    const nm = String(name || '').trim();
-    if (!p || !nm) return;
+    if (!p) return;
+    const nm = String(name || joinedName(p.id) || '').trim();
+    if (!nm) return;
     const { ok, data } = await api.cancelEntry(p.id, { name: nm, fingerprint: await getFingerprint() });
     if (ok && data?.ok) {
       p.participantCount = data.participantCount;

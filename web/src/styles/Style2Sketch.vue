@@ -71,6 +71,9 @@ function confirmSubmit() {
 watch(() => props.submitState.status, (s) => { if (s === 'error') showConfirm.value = false; });
 const errorMsg = computed(() => localError.value || (props.submitState.status === 'error' ? props.submitState.message : ''));
 function doRate(productId, level) { emit('rate', { productId, level }); }
+// 「已参与」面板撤销：两步确认，避免误点丢失幸运数字（数字不可找回）
+const confirmCancel = ref(false);
+function doCancel() { emit('cancel'); confirmCancel.value = false; }
 </script>
 
 <template>
@@ -174,6 +177,19 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
           <h2 class="mt-6 font-kalam text-4xl font-bold text-sketch-ink">提交成功！</h2>
           <p class="mt-4 font-patrick text-lg text-sketch-ink/80">你的幸运数字已锁定，开奖前对其他人保密。耐心等待开奖吧～</p>
           <p class="mt-3 inline-block -rotate-1 border-[3px] border-sketch-blue bg-white px-5 py-2 font-kalam text-lg font-bold text-sketch-blue shadow-sketch wobbly-pill">当前共 {{ period.participantCount }} 人参与</p>
+          <div class="mt-8 border-t-[3px] border-dashed border-sketch-ink/40 pt-6">
+            <template v-if="!confirmCancel">
+              <p class="font-patrick text-base text-sketch-ink/70">提交错了？可以撤销本次抽奖后重新参与（撤销不会显示你的号码）。</p>
+              <button @click="confirmCancel = true" class="mt-3 border-[3px] border-sketch-ink bg-white px-5 py-2 font-kalam text-base font-bold text-sketch-red shadow-sketch-soft transition-transform duration-100 hover:-rotate-1 hover:bg-sketch-red hover:text-white active:translate-x-[2px] active:translate-y-[2px] active:shadow-none wobbly-pill">撤销抽奖</button>
+            </template>
+            <template v-else>
+              <p class="font-kalam text-base font-bold text-sketch-red">确认撤销？撤销后幸运数字将释放，且<u>不可找回</u>。</p>
+              <div class="mt-3 flex justify-center gap-3">
+                <button @click="confirmCancel = false" class="border-[3px] border-sketch-ink bg-white px-5 py-2 font-kalam text-base font-bold text-sketch-ink shadow-sketch-soft transition-transform duration-100 hover:-rotate-1 hover:bg-sketch-muted active:translate-x-[2px] active:translate-y-[2px] active:shadow-none wobbly-pill">再想想</button>
+                <button @click="doCancel" class="border-[3px] border-sketch-ink bg-white px-5 py-2 font-kalam text-base font-bold text-sketch-red shadow-sketch transition-transform duration-100 hover:-rotate-1 hover:bg-sketch-red hover:text-white active:translate-x-[2px] active:translate-y-[2px] active:shadow-none wobbly-pill">确认撤销</button>
+              </div>
+            </template>
+          </div>
         </div>
 
         <!-- 开奖结果 -->

@@ -64,6 +64,10 @@ function confirmSubmit() {
 watch(() => props.submitState.status, (s) => { if (s === 'error') showConfirm.value = false; });
 const errorMsg = computed(() => localError.value || (props.submitState.status === 'error' ? props.submitState.message : ''));
 function doRate(productId, level) { emit('rate', { productId, level }); }
+
+// 「已参与」面板撤销：两步确认，避免误点丢失幸运数字（数字不可找回）
+const confirmCancel = ref(false);
+function doCancel() { emit('cancel'); confirmCancel.value = false; }
 </script>
 
 <template>
@@ -162,6 +166,19 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
           <h2 class="mt-6 font-orbitron text-3xl font-black uppercase tracking-wide text-cyber-cyan cyber-text-cyan sm:text-4xl">提交成功</h2>
           <p class="mt-4 font-mono text-cyber-fg/80">&gt; 你的幸运数字已锁定，开奖前对其他人保密。耐心等待开奖吧～</p>
           <p class="mt-4 font-orbitron text-sm font-bold uppercase tracking-widest text-cyber-yellow">当前共 {{ period.participantCount }} 人参与</p>
+          <div class="mt-8 border-t border-cyber-cyan/30 pt-6">
+            <template v-if="!confirmCancel">
+              <p class="font-mono text-sm text-cyber-fg/60">&gt; 提交错了？可以撤销本次抽奖后重新参与（撤销不会显示你的号码）。</p>
+              <button @click="confirmCancel = true" class="mt-3 cyber-clip border border-cyber-cyan/50 bg-black/50 px-6 py-2.5 font-orbitron text-xs font-bold uppercase tracking-widest text-cyber-cyan transition hover:bg-cyber-cyan/10 hover:cyber-glow-cyan">&gt; 撤销抽奖</button>
+            </template>
+            <template v-else>
+              <p class="font-mono text-sm font-bold text-cyber-pink cyber-text-pink">! WARN // 确认撤销？撤销后幸运数字将释放，且<u>不可找回</u>。</p>
+              <div class="mt-4 flex justify-center gap-3">
+                <button @click="confirmCancel = false" class="cyber-clip border border-cyber-cyan/50 bg-black/50 px-6 py-2.5 font-orbitron text-xs font-bold uppercase tracking-widest text-cyber-cyan transition hover:bg-cyber-cyan/10">再想想</button>
+                <button @click="doCancel" class="cyber-clip border border-cyber-pink bg-cyber-pink px-6 py-2.5 font-orbitron text-xs font-black uppercase tracking-widest text-black cyber-glow-pink transition hover:scale-[1.03] active:scale-95">&gt;&gt; 确认撤销</button>
+              </div>
+            </template>
+          </div>
         </div>
 
         <!-- 开奖结果 -->

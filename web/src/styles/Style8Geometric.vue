@@ -64,6 +64,9 @@ function confirmSubmit() {
 watch(() => props.submitState.status, (s) => { if (s === 'error') showConfirm.value = false; });
 const errorMsg = computed(() => localError.value || (props.submitState.status === 'error' ? props.submitState.message : ''));
 function doRate(productId, level) { emit('rate', { productId, level }); }
+// 「已参与」面板撤销：两步确认，避免误点丢失幸运数字（数字不可找回）
+const confirmCancel = ref(false);
+function doCancel() { emit('cancel'); confirmCancel.value = false; }
 </script>
 
 <template>
@@ -187,6 +190,19 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
           <p class="mt-4">
             <span class="inline-block rounded-full border-[3px] border-geo-ink bg-geo-blue px-6 py-2 font-fredoka font-bold text-white geo-shadow">当前共 {{ period.participantCount }} 人参与</span>
           </p>
+          <div class="mt-8 border-t-[3px] border-dashed border-geo-ink/30 pt-6">
+            <template v-if="!confirmCancel">
+              <p class="text-sm font-semibold text-geo-ink/60">提交错了？可以撤销本次抽奖后重新参与（撤销不会显示你的号码）。</p>
+              <button @click="confirmCancel = true" class="mt-3 rounded-full border-[3px] border-geo-ink bg-white px-6 py-2 font-fredoka text-sm font-bold text-geo-coral transition hover:-translate-y-0.5 active:translate-y-0.5">撤销抽奖</button>
+            </template>
+            <template v-else>
+              <p class="font-fredoka text-base font-bold text-geo-coral">确认撤销？撤销后幸运数字将释放，且<u>不可找回</u>。</p>
+              <div class="mt-3 flex justify-center gap-3">
+                <button @click="confirmCancel = false" class="rounded-full border-[3px] border-geo-ink bg-white px-6 py-2 font-fredoka text-sm font-bold text-geo-ink/70 transition hover:-translate-y-0.5 active:translate-y-0.5">再想想</button>
+                <button @click="doCancel" class="rounded-full border-[3px] border-geo-ink bg-geo-coral px-6 py-2 font-fredoka text-sm font-bold uppercase tracking-wide text-white geo-shadow transition-all duration-150 hover:-translate-y-0.5 active:translate-y-1 active:shadow-none">确认撤销</button>
+              </div>
+            </template>
+          </div>
         </div>
 
         <!-- 开奖结果 -->

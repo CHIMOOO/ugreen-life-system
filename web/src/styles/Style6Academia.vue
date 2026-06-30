@@ -66,6 +66,9 @@ function confirmSubmit() {
 watch(() => props.submitState.status, (s) => { if (s === 'error') showConfirm.value = false; });
 const errorMsg = computed(() => localError.value || (props.submitState.status === 'error' ? props.submitState.message : ''));
 function doRate(productId, level) { emit('rate', { productId, level }); }
+// 「已参与」面板撤销：两步确认，避免误点丢失幸运数字（数字不可找回）
+const confirmCancel = ref(false);
+function doCancel() { emit('cancel'); confirmCancel.value = false; }
 </script>
 
 <template>
@@ -174,6 +177,22 @@ function doRate(productId, level) { emit('rate', { productId, level }); }
           </div>
           <p class="mt-5 text-lg italic text-aca-brown">你的幸运数字已封存入册，开奖前对外人保密。请静候揭晓。</p>
           <p class="mt-4 font-playfair italic tracking-wide text-aca-forest">当前共 {{ period.participantCount }} 位参与者</p>
+          <div class="mx-auto mt-8 max-w-md border-t border-aca-brown/30 pt-6">
+            <template v-if="!confirmCancel">
+              <p class="italic text-aca-brown">呈递错了？可撤销本次抽奖后重新参与（撤销不会显示你的号码）。</p>
+              <button @click="confirmCancel = true"
+                class="mt-3 border border-aca-burgundy px-5 py-1.5 font-playfair text-sm uppercase tracking-wider text-aca-burgundy transition-colors hover:bg-aca-burgundy hover:text-aca-paper">撤销抽奖</button>
+            </template>
+            <template v-else>
+              <p class="font-playfair italic text-aca-burgundy">确认撤销？撤销后幸运数字将释放，且<u>不可找回</u>。</p>
+              <div class="mt-4 flex justify-center gap-3">
+                <button @click="confirmCancel = false"
+                  class="border-2 border-aca-ink px-6 py-2 font-playfair text-sm uppercase tracking-wider text-aca-ink transition-colors hover:bg-aca-ink hover:text-aca-paper">再想想</button>
+                <button @click="doCancel"
+                  class="bg-aca-burgundy px-6 py-2 font-playfair text-sm uppercase tracking-widest text-aca-paper transition-colors hover:bg-aca-ink">确认撤销</button>
+              </div>
+            </template>
+          </div>
         </div>
 
         <!-- 开奖结果 -->
