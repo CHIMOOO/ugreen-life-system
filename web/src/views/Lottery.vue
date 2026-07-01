@@ -4,7 +4,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { api } from '../api.js';
 import { usePeriodShell } from '../usePeriodShell.js';
-import { resolveStyle } from '../styles/registry.js';
+import { resolveStyle, setPinnedRandomStyle } from '../styles/registry.js';
 import AppLoader from '../components/AppLoader.vue';
 import ImageZoomOverlay from '../components/ImageZoomOverlay.vue';
 
@@ -25,6 +25,7 @@ onMounted(async () => {
   try {
     const [cfgRes, perRes] = await Promise.all([api.config(), api.period(id)]);
     config.value = cfgRes.data || {};
+    setPinnedRandomStyle(config.value.randomThemeCurrent); // 该期风格若为 random，也用后台锁定的随机主题
     if (!perRes.ok || !perRes.data || perRes.data.error) notFound.value = true;
     else {
       period.value = perRes.data;

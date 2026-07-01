@@ -48,7 +48,16 @@ export const STYLE_KEYS = Object.keys(STYLE_COMPONENTS);
 // 期数风格也可设为 'random'：每次进入随机一种
 STYLE_LABELS.random = '随机';
 
+// 后台开启「随机主题缓存」后，服务端会下发 TTL 内锁定的随机主题（config.randomThemeCurrent）。
+// 前端把它记在模块级变量里，让所有 'random' 解析（首页随机模式、某期风格设为 random）都用这个锁定值，
+// 从而全站在有效期内看到同一个「当前随机主题」；为空则退回每次随机。
+let _pinnedRandom = '';
+export function setPinnedRandomStyle(key) {
+  _pinnedRandom = STYLE_KEYS.includes(key) ? key : '';
+}
+
 export function randomStyleKey() {
+  if (_pinnedRandom) return _pinnedRandom;
   return STYLE_KEYS[Math.floor(Math.random() * STYLE_KEYS.length)];
 }
 

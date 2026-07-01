@@ -334,6 +334,20 @@ app.put('/api/admin/config', adminAuth, (req, res) => {
   }
   if (['follow', 'random', 'fixed'].includes(b.homeStyleMode)) setSetting('home_style_mode', b.homeStyleMode);
   if (STYLE_KEYS.includes(b.homeFixedStyle)) setSetting('home_fixed_style', b.homeFixedStyle);
+  if (b.randomThemeTtl !== undefined) {
+    const t = parseInt(b.randomThemeTtl, 10);
+    // 0 = 关闭缓存；上限 10080 分钟（7 天）防误填超大值
+    if (Number.isFinite(t)) {
+      const clamped = String(Math.min(10080, Math.max(0, t)));
+      // 仅当 TTL 真的变化时才清掉旧锁定：使「关闭再开启 / 改时长」都从新一轮随机开始，
+      // 而不会因保存其它无关设置（表单整体提交会带上当前 TTL）就误触发重随。
+      if (clamped !== getSetting('random_theme_ttl')) {
+        setSetting('random_theme_ttl', clamped);
+        setSetting('random_theme_current', '');
+        setSetting('random_theme_picked_at', '');
+      }
+    }
+  }
   if (b.teaShowChannel !== undefined) setSetting('tea_show_channel', b.teaShowChannel ? '1' : '0');
   if (b.teaShowPrice !== undefined) setSetting('tea_show_price', b.teaShowPrice ? '1' : '0');
   if (b.teaShowQty !== undefined) setSetting('tea_show_qty', b.teaShowQty ? '1' : '0');

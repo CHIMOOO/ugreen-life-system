@@ -18,6 +18,7 @@
 - **当前期（is_active）**：全局至多一期 `is_active=1`。首页 `GET /api/active` 只取它。后台「设为当前期」会先把所有期清零再置 1（`activatePeriod`）。
 - **首页 = 当前期的 style 主题页**。`web/src/views/Home.vue` 按 `config.homeStyleMode`（follow/random/fixed）解析出一个 style 组件来渲染当前期；无当前期 → `NoEvent.vue`（历史期数 + 模块介绍 + 规则）。
 - **12 套 style + 随机**：`web/src/styles/StyleN*.vue`。每套是一整页主题，但**消费完全一致的数据契约**（见 §3）。期数 style 还可取 `'random'`，由 `registry.js` 的 `resolveStyle` 解析成随机一种。
+- **随机主题缓存（TTL）**：`random_theme_ttl`（分钟，后台「首页与风格」可设，0=关闭）。开启后随机不再每次进入都换，而是由**服务端**选定一个并锁定 TTL 分钟，期间所有用户/所有刷新看到同一个「当前随机主题」，过期后下次拉配置自动换。实现：`db.js#effectiveRandomStyle()` 惰性判定（在 `getConfig` 里按需重选，无定时器），锁定值写入运行时 setting `random_theme_current`/`random_theme_picked_at`，随 `getConfig().randomThemeCurrent` 下发；前端 `registry.js#setPinnedRandomStyle` 记住它，令 `randomStyleKey()`（首页随机模式 + 某期 style='random'，Home/Lottery 都走）返回锁定值。改随机解析处务必仍走 `randomStyleKey()`，否则绕过缓存。**坑/约定**：① `GET /api/config`（公开）会「按需重随并落库」——即读接口带写副作用（write-on-read），但每个 TTL 窗口至多写一次、量与请求数无关；若日后给 `/api/config` 前置 CDN/缓存需知晓。② TTL 上限 0..10080 分钟的夹取在**读边界** `randomThemeTtlMinutes()` 做（对直接改库/导入备份也成立），不只在 PUT。③ PUT 里**仅当 TTL 值变化**才清空锁定（`random_theme_current`/`picked_at`），使「关闭再开启/改时长」从新一轮随机开始，又不会因保存其它无关设置而误重随。
 - **模块开关 = 系统级 且 期数级**。系统级在 settings：`lottery_module_enabled` / `tea_module_enabled` / `bill_module_enabled` / `period_bill_show`。期数级是 periods 行上的 `lottery_enabled` / `tea_enabled` / `bill_show`。后端对**公开端**做遮蔽（mask），对**后台端**返回真实值（见 §4）。
 
 ## 2. 数据模型（`server/src/db.js`）

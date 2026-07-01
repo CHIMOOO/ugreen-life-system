@@ -4,6 +4,7 @@ import { admin, STYLE_OPTIONS } from '../api.js';
 
 const f = reactive({
   departmentName: '', siteName: '', homeStyleMode: 'follow', homeFixedStyle: 'style1',
+  randomThemeTtl: 0,
   lotteryModuleEnabled: true, teaModuleEnabled: true,
   billModuleEnabled: true, periodBillShow: true,
   namePlaceholder: '', teaShowChannel: false, teaShowPrice: false, teaShowQty: false,
@@ -118,6 +119,18 @@ const inputCls = 'mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 outli
           </select>
         </label>
       </div>
+      <label class="mt-5 block max-w-md">
+        <span class="text-sm font-medium text-slate-600">随机主题缓存时长（分钟）</span>
+        <div class="mt-2 flex items-center gap-3">
+          <input v-model.number="f.randomThemeTtl" type="number" min="0" max="10080" step="1"
+            class="w-28 rounded-xl border border-slate-300 px-3 py-2 text-center outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" />
+          <span class="text-sm text-slate-500">分钟</span>
+        </div>
+        <p class="mt-1.5 text-xs text-slate-500">
+          <b class="text-slate-600">&gt; 0</b> 时：所有人在该时长内看到<b class="text-slate-600">同一个</b>随机主题（即固定的当前主题），过期后自动换一个。
+          <b class="text-slate-600">0</b> = 每次进入都重新随机。对「随机」风格生效——包括首页模式设为随机、或某一期风格设为随机。
+        </p>
+      </label>
     </section>
 
     <!-- ③ 模块开关 -->

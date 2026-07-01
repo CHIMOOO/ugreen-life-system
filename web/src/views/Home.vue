@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
 import { api } from '../api.js';
 import { usePeriodShell } from '../usePeriodShell.js';
-import { resolveStyle, STYLE_KEYS } from '../styles/registry.js';
+import { resolveStyle, randomStyleKey, setPinnedRandomStyle } from '../styles/registry.js';
 import AppLoader from '../components/AppLoader.vue';
 import NoEvent from '../components/NoEvent.vue';
 import ImageZoomOverlay from '../components/ImageZoomOverlay.vue';
@@ -22,7 +22,7 @@ const styleComponent = computed(() => {
   const mode = config.value?.homeStyleMode || 'follow';
   let key = period.value.style;
   if (mode === 'fixed') key = config.value?.homeFixedStyle || period.value.style;
-  else if (mode === 'random') key = STYLE_KEYS[Math.floor(Math.random() * STYLE_KEYS.length)];
+  else if (mode === 'random') key = randomStyleKey(); // 遵循后台「随机主题缓存」锁定值
   return resolveStyle(key);
 });
 
@@ -30,6 +30,7 @@ onMounted(async () => {
   try {
     const [cfgRes, actRes, listRes] = await Promise.all([api.config(), api.active(), api.periods()]);
     config.value = cfgRes.data || {};
+    setPinnedRandomStyle(config.value.randomThemeCurrent); // 应用服务端锁定的随机主题（若开启缓存）
     period.value = actRes.data?.period || null;
     periods.value = Array.isArray(listRes.data) ? listRes.data : [];
     if (period.value) syncLocal();

@@ -154,6 +154,9 @@ export const DEFAULT_SETTINGS = {
   site_name: 'AIoT客户端组生活系统',
   home_style_mode: 'follow', // follow | random | fixed
   home_fixed_style: 'style1',
+  random_theme_ttl: '0', // 随机主题缓存时长（分钟）。>0 时所有用户在该时长内看到同一个随机主题，过期自动换一个；0=每次进入都随机
+  // random_theme_current / random_theme_picked_at 是运行时缓存（当前锁定的随机主题 + 选定时刻），
+  // 由 effectiveRandomStyle() 按需写入，不在此列默认值。
   tea_show_channel: '0', // 下午茶商品「录入渠道」是否对用户展示
   tea_show_price: '0', // 下午茶商品「价格」是否对用户展示
   tea_show_qty: '0', // 下午茶商品「数量」是否对用户展示
@@ -185,12 +188,38 @@ export function getSetting(key) {
 export function setSetting(key, value) {
   _setSetting.run(key, String(value ?? ''));
 }
+// 「随机主题缓存」：TTL>0 时，服务端选定一个随机主题并锁定 random_theme_ttl 分钟，
+// 期间所有用户/所有刷新都拿到同一个（即「固定的当前主题」）；过期后下次读取自动换一个。
+// 惰性判定：在 getConfig（前台/后台每次拉配置都会走）里按需重选，无需定时器。
+// 返回 '' 表示未启用缓存（TTL<=0），此时前端按原行为每次进入自行随机。
+// 读边界统一取整 + 夹到 0..10080，令上限不变式对任何写入者（PUT / 直接改库 / 导入备份）都成立。
+export function randomThemeTtlMinutes() {
+  const raw = Math.floor(Number(getSetting('random_theme_ttl')) || 0);
+  return Math.min(10080, Math.max(0, raw));
+}
+
+export function effectiveRandomStyle() {
+  const ttlMin = randomThemeTtlMinutes();
+  if (ttlMin <= 0) return '';
+  const now = Date.now();
+  const pickedAt = Date.parse(getSetting('random_theme_picked_at') || '');
+  const cur = getSetting('random_theme_current');
+  const valid = cur && STYLE_KEYS.includes(cur) && Number.isFinite(pickedAt) && (now - pickedAt) < ttlMin * 60000;
+  if (valid) return cur;
+  const next = STYLE_KEYS[Math.floor(Math.random() * STYLE_KEYS.length)];
+  setSetting('random_theme_current', next);
+  setSetting('random_theme_picked_at', nowIso());
+  return next;
+}
+
 export function getConfig() {
   return {
     departmentName: getSetting('department_name'),
     siteName: getSetting('site_name'),
     homeStyleMode: getSetting('home_style_mode'),
     homeFixedStyle: getSetting('home_fixed_style'),
+    randomThemeTtl: randomThemeTtlMinutes(),
+    randomThemeCurrent: effectiveRandomStyle(), // TTL 内锁定的随机主题；未启用则为 ''
     lotteryModuleEnabled: getSetting('lottery_module_enabled') !== '0',
     teaModuleEnabled: getSetting('tea_module_enabled') !== '0',
     namePlaceholder: getSetting('name_placeholder'),
