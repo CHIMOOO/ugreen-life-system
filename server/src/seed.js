@@ -1,5 +1,5 @@
 // 初始化演示数据：商品库 + 三期（三种 style）+ 当前期 + 评分。
-import { db, nowIso, setSetting, activatePeriod, setPeriodProducts } from './db.js';
+import { db, nowIso, setSetting, activatePeriod, setPeriodProducts, upsertUser } from './db.js';
 import { computeResult, normalizePrizes } from './lottery.js';
 
 db.exec('DELETE FROM entries; DELETE FROM tea_ratings; DELETE FROM period_products; DELETE FROM tea_products; DELETE FROM periods; DELETE FROM bills; DELETE FROM fingerprints; DELETE FROM users;');
@@ -51,7 +51,12 @@ function seedPeriod({ title, style, lottery, tea, status, prizes, entries, produ
     title, style, lottery: lottery ? 1 : 0, tea: tea ? 1 : 0, status,
     prizes: JSON.stringify(normPrizes), result, hours, closeAt: future(hours), createdAt: nowIso(),
   }).lastInsertRowid;
-  for (const e of entries) insEntry.run(pid, e.name, e.number, nowIso());
+  // 与真实提交(/api/periods/:id/entries)一致：参与者同步进用户库，
+  // 否则演示数据下「用户管理」会是空的（提交抽奖看似没进用户库）。
+  for (const e of entries) {
+    insEntry.run(pid, e.name, e.number, nowIso());
+    upsertUser(e.name);
+  }
   if (tea) {
     setPeriodProducts(pid, productKeys.map((k) => products[k]));
     for (const k of productKeys) if (ratings[k]) seedRatings(pid, products[k], ratings[k]);
