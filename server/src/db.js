@@ -369,11 +369,14 @@ export function ledger() {
     if (b.kind === 'income') income += b.amount;
     else expense += b.amount;
   }
-  const balance = round2(income - expense);
+  // 先各自取整，再由取整后的值算结余，保证展示上「收入 - 支出 = 结余」恒成立（否则分位误差会让三者对不上）
+  const inc = round2(income);
+  const exp = round2(expense);
+  const balance = round2(inc - exp);
   return {
     items: rows.map(billRow),
-    income: round2(income),
-    expense: round2(expense),
+    income: inc,
+    expense: exp,
     balance,
     advance: balance < 0 ? round2(-balance) : 0, // 当前垫付金额
   };
