@@ -58,12 +58,12 @@ function confirmSubmit() {
   emit('submit', pending.value);
 }
 // 提交出错时关闭弹窗，让错误信息回到表单展示；成功则整块切到「已参与」自动卸载
-watch(() => props.submitState.status, (s) => { if (s === 'error') showConfirm.value = false; });
+watch(() => props.submitState.status, (s) => { if (['error', 'success', 'joined'].includes(s)) showConfirm.value = false; });
 const errorMsg = computed(() => localError.value || (props.submitState.status === 'error' ? props.submitState.message : ''));
 function doRate(productId, level) { emit('rate', { productId, level }); }
 // 「已参与」面板撤销：两步确认，避免误点丢失幸运数字（数字不可找回）
 const confirmCancel = ref(false);
-function doCancel() { emit('cancel'); confirmCancel.value = false; }
+function doCancel() { emit('cancel'); confirmCancel.value = false; localError.value = ''; number.value = ''; }
 </script>
 
 <template>

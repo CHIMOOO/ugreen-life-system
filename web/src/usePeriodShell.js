@@ -56,6 +56,7 @@ export function usePeriodShell(periodRef) {
       name: getStoredName(), fingerprint: await getFingerprint(),
     });
     ratingBusy.value = { ...ratingBusy.value, [productId]: false };
+    if (periodRef.value?.id !== p.id) return; // 异步期间已切换期数：丢弃陈旧结果，避免写错对象
     if ((ok || status === 409) && data?.ratings) {
       const prod = (p.tea?.products || []).find((x) => x.id === productId);
       if (prod) prod.ratings = data.ratings;
@@ -90,6 +91,8 @@ export function usePeriodShell(periodRef) {
     if (!p) return;
     const nm = String(name || joinedName(p.id) || '').trim();
     if (!nm) return;
+    clearTimeout(checkTimer); // 取消未落定的查重，避免撤销后迟到结果把姓名重新标记为「已提交」
+    checkSeq++;
     const { ok, data } = await api.cancelEntry(p.id, { name: nm, fingerprint: await getFingerprint() });
     if (ok && data?.ok) {
       p.participantCount = data.participantCount;
