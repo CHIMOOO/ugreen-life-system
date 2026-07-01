@@ -1,10 +1,17 @@
 // 浏览器指纹采集（仅供参考统计、可追溯，不追求严谨/唯一）。
-// 综合多类高熵信号：Canvas / WebGL / Audio / 字体 / 屏幕 / 时区 / Client Hints / 网络 等，
-// 前端拿不到或不稳定的（来源 IP、完整 UA 版本、机型架构…）由后端在落库时补全（见 server serverSignals）。
-// 信号是异步采集的：进入页面即 initFingerprint() 预热缓存，提交时 await getFingerprint() 取结果。
+//
+// 核心引擎用开源库 @fingerprintjs/fingerprintjs（MIT，纯前端，随包打包无需 CDN）：
+//   - 产出稳定的 visitorId（同一浏览器多次访问保持一致，作为「指纹 id」）；
+//   - 产出 components —— 全量原始信号（canvas/audio/字体/WebGL/屏幕/时区/语言…），
+//     即后台「原始全量信号 JSON」里能看到的东西。
+// 我们在其之上再补一层高熵 UA-Client-Hints（架构/机型/完整版本），FPJS 默认不采这些；
+// 前端拿不到或不稳定的（来源 IP、UA、语言头、sec-ch-* 头）由后端落库时补全（见 server serverSignals）。
+//
+// 信号是异步采集的：进入页面即 initFingerprint() 预热，提交时 await getFingerprint() 取结果。
+import FingerprintJS from '@fingerprintjs/fingerprintjs';
 
+// FNV-1a 32 位 → 用于把 canvas 等长值折成短 hash 便于后台一眼比对（原始值仍完整存在 details 里）。
 function hash(str) {
-  // FNV-1a 32 位
   let h = 0x811c9dc5;
   for (let i = 0; i < str.length; i++) {
     h ^= str.charCodeAt(i);
@@ -16,111 +23,13 @@ function hash16(str) {
   return (hash(str) + hash('salt:' + str)).slice(0, 16);
 }
 
-function canvasFp() {
-  try {
-    const c = document.createElement('canvas');
-    c.width = 260;
-    c.height = 60;
-    const ctx = c.getContext('2d');
-    if (!ctx) return '';
-    ctx.textBaseline = 'top';
-    ctx.font = "16px 'Arial'";
-    ctx.fillStyle = '#f60';
-    ctx.fillRect(125, 1, 62, 20);
-    ctx.fillStyle = '#069';
-    ctx.fillText('生活系统 Fingerprint 😃 0123', 2, 15);
-    ctx.fillStyle = 'rgba(102,204,0,0.7)';
-    ctx.fillText('生活系统 Fingerprint 😃 0123', 4, 17);
-    return c.toDataURL();
-  } catch {
-    return '';
-  }
+// 安全读取 FPJS component 的 value（component 可能是 {value} 或 {error}）。
+function cv(components, key) {
+  const c = components && components[key];
+  return c && 'value' in c ? c.value : undefined;
 }
 
-function webglFp() {
-  try {
-    const c = document.createElement('canvas');
-    const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
-    if (!gl) return null;
-    const dbg = gl.getExtension('WEBGL_debug_renderer_info');
-    return {
-      vendor: dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR),
-      renderer: dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER),
-      version: gl.getParameter(gl.VERSION),
-      glsl: gl.getParameter(gl.SHADING_LANGUAGE_VERSION),
-      maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
-      maxViewport: (gl.getParameter(gl.MAX_VIEWPORT_DIMS) || []).join('x'),
-      extensions: (gl.getSupportedExtensions() || []).length,
-    };
-  } catch {
-    return null;
-  }
-}
-
-async function audioFp() {
-  try {
-    const Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-    if (!Ctx) return '';
-    const ctx = new Ctx(1, 44100, 44100);
-    const osc = ctx.createOscillator();
-    osc.type = 'triangle';
-    osc.frequency.value = 10000;
-    const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -50;
-    comp.knee.value = 40;
-    comp.ratio.value = 12;
-    comp.attack.value = 0;
-    comp.release.value = 0.25;
-    osc.connect(comp);
-    comp.connect(ctx.destination);
-    osc.start(0);
-    const buf = await ctx.startRendering();
-    const data = buf.getChannelData(0);
-    let sum = 0;
-    for (let i = 4500; i < 5000; i++) sum += Math.abs(data[i]);
-    return sum.toString();
-  } catch {
-    return '';
-  }
-}
-
-function fontsFp() {
-  try {
-    if (!document.body) return [];
-    const base = ['monospace', 'sans-serif', 'serif'];
-    const test = [
-      'Arial', 'Verdana', 'Times New Roman', 'Courier New', 'Georgia', 'Tahoma', 'Helvetica',
-      'Comic Sans MS', 'Segoe UI', 'Roboto', 'Microsoft YaHei', '微软雅黑', 'SimSun', '宋体',
-      'SimHei', '黑体', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans CJK SC', 'WenQuanYi Micro Hei',
-    ];
-    const span = document.createElement('span');
-    span.style.cssText = 'position:absolute;left:-9999px;top:-9999px;font-size:72px;line-height:normal;visibility:hidden';
-    span.textContent = 'mmmmmmmmmlli微软雅黑';
-    document.body.appendChild(span);
-    const baseSize = {};
-    for (const b of base) {
-      span.style.fontFamily = b;
-      baseSize[b] = { w: span.offsetWidth, h: span.offsetHeight };
-    }
-    const available = [];
-    for (const f of test) {
-      let detected = false;
-      for (const b of base) {
-        span.style.fontFamily = `'${f}',${b}`;
-        if (span.offsetWidth !== baseSize[b].w || span.offsetHeight !== baseSize[b].h) {
-          detected = true;
-          break;
-        }
-      }
-      if (detected) available.push(f);
-    }
-    document.body.removeChild(span);
-    return available;
-  } catch {
-    return [];
-  }
-}
-
+// 高熵 User-Agent Client Hints（FPJS 不采），需要安全上下文；拿不到就返回 null。
 async function clientHints() {
   try {
     const uad = navigator.userAgentData;
@@ -147,80 +56,85 @@ async function clientHints() {
   }
 }
 
-async function mediaKinds() {
+// 从 FPJS components 里提炼后台「关键信号一览」需要的规范化字段（读不到就退到 navigator/screen）。
+function normalizeSignals(components, ch) {
+  const d = {};
   try {
-    if (!navigator.mediaDevices?.enumerateDevices) return null;
-    const list = await navigator.mediaDevices.enumerateDevices();
-    const counts = {};
-    for (const d of list) counts[d.kind] = (counts[d.kind] || 0) + 1;
-    return counts;
-  } catch {
-    return null;
-  }
-}
+    const n = navigator;
+    d.userAgent = n.userAgent || '';
+    // languages：FPJS 是 string[][]，拍平成逗号串
+    const langs = cv(components, 'languages');
+    d.languages = Array.isArray(langs) ? langs.flat().join(',') : (n.languages || []).join(',');
+    d.language = n.language || '';
+    d.platform = cv(components, 'platform') || n.platform || '';
+    d.vendor = cv(components, 'vendor') || n.vendor || '';
+    d.osCpu = cv(components, 'osCpu') || '';
+    d.hardwareConcurrency = cv(components, 'hardwareConcurrency') ?? n.hardwareConcurrency ?? '';
+    d.deviceMemory = cv(components, 'deviceMemory') ?? n.deviceMemory ?? '';
+    d.touch = (() => { const t = cv(components, 'touchSupport'); return t ? t.maxTouchPoints > 0 || t.touchEvent : (n.maxTouchPoints || 0) > 0; })();
 
-async function compute() {
-  const n = navigator;
-  const details = {};
-  try {
-    details.userAgent = n.userAgent || '';
-    details.language = n.language || '';
-    details.languages = (n.languages || []).join(',');
-    details.platform = n.platform || '';
-    details.vendor = n.vendor || '';
-    details.hardwareConcurrency = n.hardwareConcurrency ?? '';
-    details.deviceMemory = n.deviceMemory ?? '';
-    details.maxTouchPoints = n.maxTouchPoints ?? '';
-    details.touch = 'ontouchstart' in window || (n.maxTouchPoints || 0) > 0;
-    details.cookieEnabled = n.cookieEnabled;
-    details.doNotTrack = n.doNotTrack || window.doNotTrack || '';
-    details.pdfViewerEnabled = n.pdfViewerEnabled ?? '';
-    details.webdriver = n.webdriver ?? '';
+    // 屏幕：FPJS screenResolution 是方向无关的 [a, b]
+    const sr = cv(components, 'screenResolution');
+    d.screen = Array.isArray(sr) ? sr.join('x') : `${screen.width}x${screen.height}`;
+    d.colorDepth = cv(components, 'colorDepth') ?? screen.colorDepth;
+    d.devicePixelRatio = window.devicePixelRatio || 1;
 
-    details.screen = `${screen.width}x${screen.height}`;
-    details.availScreen = `${screen.availWidth}x${screen.availHeight}`;
-    details.colorDepth = screen.colorDepth;
-    details.pixelDepth = screen.pixelDepth;
-    details.devicePixelRatio = window.devicePixelRatio || 1;
-    details.orientation = screen.orientation?.type || '';
+    d.timezone = cv(components, 'timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone || '';
 
-    const dtf = Intl.DateTimeFormat().resolvedOptions();
-    details.timezone = dtf.timeZone || '';
-    details.locale = dtf.locale || '';
-    details.timezoneOffset = new Date().getTimezoneOffset();
-
-    details.storage = {
-      local: (() => { try { return !!window.localStorage; } catch { return false; } })(),
-      session: (() => { try { return !!window.sessionStorage; } catch { return false; } })(),
-      indexedDB: !!window.indexedDB,
-    };
-
-    const conn = n.connection || n.mozConnection || n.webkitConnection;
-    if (conn) {
-      details.network = { effectiveType: conn.effectiveType, downlink: conn.downlink, rtt: conn.rtt, saveData: conn.saveData };
+    // WebGL（GPU 渲染器/厂商）——FPJS webGlBasics 里带 renderer/vendor
+    const gl = cv(components, 'webGlBasics');
+    if (gl && typeof gl === 'object') {
+      d.webgl = { vendor: gl.vendor || '', renderer: gl.renderer || '', version: gl.version || '' };
     }
 
-    details.canvasHash = (() => { const c = canvasFp(); return c ? hash16(c) : ''; })();
-    details.webgl = webglFp();
-    const audio = await audioFp();
-    details.audioHash = audio ? hash16(audio) : '';
-    details.fonts = fontsFp();
-    details.clientHints = await clientHints();
-    details.mediaKinds = await mediaKinds();
+    d.fonts = cv(components, 'fonts') || [];
+
+    // canvas/audio：原始值较长，折成短 hash 便于后台比对（完整值仍在 fingerprintjs 原始信号里）
+    const canvas = cv(components, 'canvas');
+    d.canvasHash = canvas ? hash16(JSON.stringify(canvas)) : '';
+    const audio = cv(components, 'audio');
+    d.audioHash = (audio || audio === 0) ? hash16(String(audio)) : '';
+
+    d.clientHints = ch;
   } catch {
     /* 尽量保留已采集的部分 */
   }
+  return d;
+}
 
-  // 稳定子集 → 稳定 id（同一浏览器多次提交保持一致，便于追溯）
+async function compute() {
+  let visitorId = '';
+  let confidence = null;
+  let fpVersion = '';
+  let components = {};
+  try {
+    const agent = await FingerprintJS.load({ monitoring: false }); // 不发安装统计请求
+    const r = await agent.get();
+    visitorId = r.visitorId || '';
+    confidence = r.confidence || null;
+    fpVersion = r.version || '';
+    components = r.components || {};
+  } catch {
+    /* FPJS 采集失败：下面仍会用 navigator 兜底出一份可用的 details */
+  }
+
+  const ch = await clientHints();
+  const details = normalizeSignals(components, ch);
+
+  // 稳定 id：优先用 FPJS 的 visitorId；万一 FPJS 失败，用规范化信号折一个兜底 id。
   const stable = [
     details.canvasHash, details.audioHash, JSON.stringify(details.webgl || ''),
     (details.fonts || []).join(','), details.screen, details.colorDepth, details.timezone,
     details.languages, details.platform, details.hardwareConcurrency, details.deviceMemory,
     details.vendor, JSON.stringify(details.clientHints || ''),
   ].join('|');
-  const id = hash16(stable);
+  const id = visitorId || hash16(stable);
 
-  const ch = details.clientHints;
+  details.visitorId = visitorId;
+  details.confidence = confidence;
+  details.fpVersion = fpVersion;
+  details.fingerprintjs = components; // 全量原始信号（后台可展开查看）
+
   const plat = (ch && ch.platform) || details.platform || '?';
   const rend = (details.webgl && details.webgl.renderer) || '';
   const summary = [
@@ -245,10 +159,10 @@ export function initFingerprint() {
 }
 
 // 提交时取指纹；首次会等待采集完成，之后走缓存。
-// 加 1.5s 超时兜底：个别环境下 Audio/WebGL 采集偏慢，避免「提交」按钮长时间转圈。
+// 加超时兜底：个别环境下采集偏慢，避免「提交」按钮长时间转圈。预热通常已让它命中缓存。
 export async function getFingerprint() {
   if (cached) return cached;
-  const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 1500));
+  const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 2500));
   try {
     const r = await Promise.race([inflight || compute(), timeout]);
     if (r) {

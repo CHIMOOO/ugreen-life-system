@@ -7,7 +7,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.join(__dirname, '..', 'data');
 fs.mkdirSync(dataDir, { recursive: true });
 
-export const DB_FILE = path.join(dataDir, 'data.sqlite');
+// DB 路径默认 server/data/data.sqlite；可用 CHOUJIANG_DB 覆盖（跑第二实例/隔离测试时用，
+// 避免与正在运行的实例共用同一个库文件互相干扰）。
+export const DB_FILE = process.env.CHOUJIANG_DB || path.join(dataDir, 'data.sqlite');
+fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
 export const db = new DatabaseSync(DB_FILE);
 
 db.exec(`
@@ -416,8 +419,10 @@ export function recordFingerprint(name, client, kind, periodId, server) {
   const srv = server && typeof server === 'object' ? server : {};
   const fpStr = [id, summary].filter(Boolean).join(' · ') || summary || '';
   let merged = JSON.stringify({ id, summary, client: clientDetails, server: srv });
-  // 公开端可传任意大的 details，做个上限兜底，避免被塞超大 JSON 撑大库
-  if (merged.length > 20000) merged = JSON.stringify({ id, summary, truncated: true, server: srv });
+  // 公开端可传任意大的 details，做个上限兜底，避免被塞超大 JSON 撑大库。
+  // FingerprintJS 全量 components + 字体表 + clientHints 正常在 10~40KB，这里放到 80KB；
+  // 超限（多半是被恶意灌大）则只留摘要 + 服务端信号，客户端全量信号丢弃。
+  if (merged.length > 80000) merged = JSON.stringify({ id, summary, truncated: true, server: srv });
   db.prepare(
     'INSERT INTO fingerprints (name, fp, ip, ua, details, kind, period_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(String(name || '').trim() || null, fpStr, srv.ip || '', srv.ua || '', merged, kind, periodId ?? null, nowIso());

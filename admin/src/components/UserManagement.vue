@@ -58,17 +58,29 @@ const kindMeta = (k) =>
     ? { label: '评分', cls: 'bg-amber-100 text-amber-700' }
     : { label: '抽奖', cls: 'bg-indigo-100 text-indigo-700' };
 
+// 旧版本记录（指纹增强前）：details 为空，除了姓名/时间没有可展示的信号。
+function isLegacy(f) {
+  const d = f.details;
+  if (!d || typeof d !== 'object') return true;
+  return !d.client && !d.server && !d.visitorId;
+}
+
 // 从一条指纹记录里抽取便于阅读的关键信号
 function fpView(f) {
   const d = f.details || {};
   const c = d.client || {};
   const s = d.server || {};
   const ch = c.clientHints || {};
+  const conf = c.confidence || {};
   const browser = (Array.isArray(ch.fullVersionList) && ch.fullVersionList[0])
     || (Array.isArray(ch.brands) && ch.brands[ch.brands.length - 1])
     || '';
-  const os = ch.platform ? `${ch.platform} ${ch.platformVersion || ''}`.trim() : (c.platform || '');
+  const os = ch.platform ? `${ch.platform} ${ch.platformVersion || ''}`.trim() : (c.osCpu || c.platform || '');
   return {
+    // visitorId 优先取 client 里 FPJS 的稳定 id，退到顶层 id（recordFingerprint 会回填）
+    visitorId: c.visitorId || d.id || '',
+    confidence: typeof conf.score === 'number' ? Math.round(conf.score * 100) : null,
+    fpVersion: c.fpVersion || '',
     ip: f.ip || s.ip || '—',
     ua: f.ua || s.ua || '',
     browser,
@@ -194,6 +206,22 @@ function fpView(f) {
                     <span class="rounded px-2 py-0.5 text-xs font-medium" :class="kindMeta(f.kind).cls">{{ kindMeta(f.kind).label }}</span>
                     <span class="font-mono text-xs text-slate-400">{{ fmtTime(f.createdAt) }}</span>
                   </div>
+
+                  <!-- 旧版本记录（指纹增强前）：无采集详情 -->
+                  <p v-if="isLegacy(f)" class="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 ring-1 ring-amber-200">
+                    早期记录，未采集设备信号（指纹机制升级前）。摘要：<span class="font-mono">{{ f.fp || '—' }}</span>
+                  </p>
+
+                  <template v-else>
+                  <!-- 指纹 id（FingerprintJS visitorId）+ 置信度 -->
+                  <div class="mt-2.5 flex flex-wrap items-center gap-2">
+                    <span class="text-xs text-slate-400">指纹 id</span>
+                    <code class="rounded bg-indigo-50 px-2 py-0.5 font-mono text-xs font-semibold text-indigo-700">{{ fpView(f).visitorId || '—' }}</code>
+                    <span v-if="fpView(f).confidence !== null" class="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] text-emerald-600 ring-1 ring-emerald-200">
+                      置信度 {{ fpView(f).confidence }}%
+                    </span>
+                    <span v-if="fpView(f).fpVersion" class="text-[11px] text-slate-300">FPJS v{{ fpView(f).fpVersion }}</span>
+                  </div>
                   <!-- 关键信号一览 -->
                   <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs sm:grid-cols-3">
                     <div class="flex gap-1.5"><dt class="shrink-0 text-slate-400">IP</dt><dd class="truncate font-mono text-slate-700">{{ fpView(f).ip }}</dd></div>
@@ -212,6 +240,7 @@ function fpView(f) {
                     <summary class="cursor-pointer select-none text-xs text-indigo-500 hover:underline">查看原始全量信号 JSON</summary>
                     <pre class="mt-2 max-h-64 overflow-auto rounded-lg bg-slate-900 p-3 text-[11px] leading-relaxed text-slate-200">{{ JSON.stringify(f.details, null, 2) }}</pre>
                   </details>
+                  </template>
                 </div>
               </div>
               <p v-else class="mt-2 text-sm text-slate-400">暂无指纹记录。</p>

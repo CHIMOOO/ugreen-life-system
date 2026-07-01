@@ -1,5 +1,5 @@
-// 初始化演示数据：商品库 + 三期（三种 style）+ 当前期 + 评分。
-import { db, nowIso, setSetting, activatePeriod, setPeriodProducts, upsertUser } from './db.js';
+// 初始化演示数据：商品库 + 三期（三种 style）+ 当前期 + 评分 + 指纹样例。
+import { db, nowIso, setSetting, activatePeriod, setPeriodProducts, upsertUser, recordFingerprint } from './db.js';
 import { computeResult, normalizePrizes } from './lottery.js';
 
 db.exec('DELETE FROM entries; DELETE FROM tea_ratings; DELETE FROM period_products; DELETE FROM tea_products; DELETE FROM periods; DELETE FROM bills; DELETE FROM fingerprints; DELETE FROM users;');
@@ -132,6 +132,86 @@ insBill.run(day(-30), '部门下午茶基金充值', 'income', 1000, '每人 100
 insBill.run(day(-20), '第一期下午茶采购', 'expense', 86, '提拉米苏 + 芝士 + 草莓', p1, nowIso());
 insBill.run(day(-10), '第二期下午茶采购', 'expense', 120, '咖啡 + 千层 + 蛋挞', p2, nowIso());
 insBill.run(day(-5), '阿强垫付一次性纸杯', 'expense', 35, '阿强先垫，待报销', null, nowIso());
+
+// ---- 指纹样例 ----
+// 真实指纹由浏览器 FingerprintJS 采集（visitorId + 全量 components），演示数据里无法跑浏览器，
+// 这里按同一套 { id, summary, details } 结构造几条贴近真实的样例，让后台「用户管理 → 指纹模块」
+// 有东西可看（关键信号一览 + 原始全量信号 JSON）。字段形状与 web/src/fingerprint.js 保持一致。
+function sampleClient({ visitorId, platform, osCpu, screen, dpr, tz, gpu, fonts, ua, ch }) {
+  const details = {
+    userAgent: ua,
+    languages: 'zh-CN,zh,en',
+    language: 'zh-CN',
+    platform,
+    vendor: 'Google Inc.',
+    osCpu,
+    hardwareConcurrency: 8,
+    deviceMemory: 8,
+    touch: false,
+    screen,
+    colorDepth: 24,
+    devicePixelRatio: dpr,
+    timezone: tz,
+    webgl: { vendor: 'Google Inc. (NVIDIA)', renderer: gpu, version: 'WebGL 1.0' },
+    fonts,
+    canvasHash: visitorId.slice(0, 16),
+    audioHash: visitorId.slice(4, 20),
+    clientHints: ch,
+    visitorId,
+    confidence: { score: 0.94, comment: 'Suitable for most use cases' },
+    fpVersion: '5.2.0',
+    // 原始全量信号（截取部分典型 components，展示「原始全量信号 JSON」）
+    fingerprintjs: {
+      fonts: { value: fonts, duration: 41 },
+      screenResolution: { value: screen.split('x').map(Number), duration: 0 },
+      timezone: { value: tz, duration: 1 },
+      platform: { value: platform, duration: 0 },
+      canvas: { value: { winding: true, geometry: 'data:hash…', text: 'data:hash…' }, duration: 33 },
+      audio: { value: 124.0434808, duration: 12 },
+      webGlBasics: { value: { version: 'WebGL 1.0', vendor: 'Google Inc. (NVIDIA)', renderer: gpu }, duration: 8 },
+      languages: { value: [['zh-CN'], ['zh'], ['en']], duration: 0 },
+      deviceMemory: { value: 8, duration: 0 },
+      hardwareConcurrency: { value: 8, duration: 0 },
+    },
+  };
+  return { id: visitorId, summary: `${platform} · ${screen}@${dpr}x · ${tz} · ${gpu.slice(0, 40)}`, details };
+}
+function sampleServer(ip, ua) {
+  return {
+    ip, ua, acceptLanguage: 'zh-CN,zh;q=0.9,en;q=0.8', acceptEncoding: 'gzip, deflate, br',
+    referer: 'http://localhost/', clientHints: { 'sec-ch-ua-platform': '"Windows"' }, serverTime: nowIso(),
+  };
+}
+
+const winPC = {
+  visitorId: 'a1b2c3d4e5f60718', platform: 'Win32', osCpu: '', screen: '1920x1080', dpr: 1,
+  tz: 'Asia/Shanghai', gpu: 'ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0)',
+  fonts: ['Arial', 'Calibri', 'Consolas', 'Microsoft YaHei', 'SimSun', 'SimHei', 'Segoe UI'],
+  ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+  ch: { platform: 'Windows', platformVersion: '15.0.0', architecture: 'x86', bitness: '64', model: '', fullVersionList: ['Chromium 126.0.6478.127', 'Google Chrome 126.0.6478.127'] },
+};
+const mac = {
+  visitorId: 'f0e1d2c3b4a59687', platform: 'MacIntel', osCpu: '', screen: '1512x982', dpr: 2,
+  tz: 'Asia/Shanghai', gpu: 'ANGLE (Apple, Apple M2, OpenGL 4.1)',
+  fonts: ['Arial', 'Helvetica', 'PingFang SC', 'Hiragino Sans GB', 'Menlo', 'Times New Roman'],
+  ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15',
+  ch: null,
+};
+const android = {
+  visitorId: '9a8b7c6d5e4f3021', platform: 'Linux armv8l', osCpu: '', screen: '915x412', dpr: 2.625,
+  tz: 'Asia/Shanghai', gpu: 'Adreno (TM) 730',
+  fonts: ['Roboto', 'Noto Sans CJK SC', 'Droid Sans'],
+  ua: 'Mozilla/5.0 (Linux; Android 14; PGT-AN10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
+  ch: { platform: 'Android', platformVersion: '14.0.0', architecture: '', bitness: '', model: 'PGT-AN10', fullVersionList: ['Chromium 126.0.6478.127'] },
+};
+
+// 给几个演示用户各记一条（不同设备/动作），覆盖 lottery / rating / cancel 三种 kind。
+recordFingerprint('小明', sampleClient(winPC), 'lottery', p1, sampleServer('10.12.3.45', winPC.ua));
+recordFingerprint('小红', sampleClient(mac), 'lottery', p1, sampleServer('10.12.3.51', mac.ua));
+recordFingerprint('小红', sampleClient(mac), 'rating', p1, sampleServer('10.12.3.51', mac.ua));
+recordFingerprint('阿强', sampleClient(android), 'lottery', p1, sampleServer('172.20.8.9', android.ua));
+recordFingerprint('阿强', sampleClient(android), 'cancel', p1, sampleServer('172.20.8.9', android.ua));
+recordFingerprint('Tom', sampleClient(winPC), 'lottery', p2, sampleServer('10.12.3.77', winPC.ua));
 
 // 当前期（同时只有一期在线）
 activatePeriod(p1);
