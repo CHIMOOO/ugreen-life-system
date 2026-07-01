@@ -15,9 +15,9 @@
  *
  * 每个 style 都渲染四块：① 头部 ② 抽奖 ③ 下午茶 ④ 规则。
  */
-import { ref, computed, watch } from 'vue';
 import { assetUrl } from '../api.js';
-import { useLotteryForm, stepExplain, winnersByPrize, TEA_LEVELS, teaExtraText } from '../useLottery.js';
+import { stepExplain, TEA_LEVELS, teaExtraText } from '../useLottery.js';
+import { useStyleShell } from '../useStyleShell.js';
 import DiceButton from '../components/DiceButton.vue';
 import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
 import { openZoom } from '../useImageZoom.js';
@@ -37,36 +37,14 @@ const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
 const CANDY = ['#FF6B6B', '#2FB5AC', '#FFC93C', '#5B8DEF', '#9B5DE5'];
 const candy = (i) => CANDY[((i % CANDY.length) + CANDY.length) % CANDY.length];
 
-const isDrawn = computed(() => props.period.status === 'drawn');
-const lotteryOn = computed(() => props.period.lotteryEnabled);
-const teaOn = computed(() => props.period.teaEnabled && props.period.tea?.products?.length);
-const joined = computed(() => ['success', 'joined'].includes(props.submitState.status));
-const showForm = computed(() => lotteryOn.value && !isDrawn.value && !joined.value);
-const result = computed(() => props.period.result);
-const prizeGroups = computed(() => (result.value ? winnersByPrize(result.value) : []));
-
-const { name, number, validate } = useLotteryForm();
-const localError = ref('');
-const showConfirm = ref(false); // 提交前的规则确认弹窗
-const pending = ref(null);
-function doSubmit() {
-  localError.value = '';
-  const r = validate();
-  if (r.error) { localError.value = r.error; return; }
-  pending.value = { name: r.name, number: r.number };
-  showConfirm.value = true; // 先弹规则确认，确认后才真正提交
-}
-function confirmSubmit() {
-  if (props.submitting || !pending.value) return;
-  emit('submit', pending.value);
-}
-// 提交出错时关闭弹窗，让错误信息回到表单展示；成功则整块切到「已参与」自动卸载
-watch(() => props.submitState.status, (s) => { if (['error', 'success', 'joined'].includes(s)) showConfirm.value = false; });
-const errorMsg = computed(() => localError.value || (props.submitState.status === 'error' ? props.submitState.message : ''));
-function doRate(productId, level) { emit('rate', { productId, level }); }
-// 「已参与」面板撤销：两步确认，避免误点丢失幸运数字（数字不可找回）
-const confirmCancel = ref(false);
-function doCancel() { emit('cancel'); confirmCancel.value = false; localError.value = ''; number.value = ''; }
+// 抽奖表单 / 规则确认弹窗 / 评分 / 撤销等交互逻辑：12 套 style 共用，见 useStyleShell。
+// 本文件只保留自己的视觉（配色 ACCENTS + 模板）。
+const {
+  name, number, localError, showConfirm, pending, confirmCancel,
+  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, errorMsg,
+  doSubmit, confirmSubmit, doRate, doCancel,
+} = useStyleShell(props, emit);
+// 「已参与」面板两步撤销的确认态 confirmCancel、doCancel 均来自 useStyleShell
 </script>
 
 <template>
