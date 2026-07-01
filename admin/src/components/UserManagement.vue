@@ -17,11 +17,14 @@ async function load() {
   loading.value = true;
   const { data } = await admin.users({ page: page.value, q: q.value.trim() });
   loading.value = false;
-  if (data && Array.isArray(data.items)) {
-    items.value = data.items;
-    total.value = data.total;
-    pages.value = data.pages;
-    page.value = data.page;
+  // 兼容两种返回：新版分页对象 { items, total, pages, page }，以及旧后端直接返回的数组。
+  // 若后端在线但接口版本不一致（例如后端未随前端更新），也能正常展示而非静默空白。
+  const list = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : null;
+  if (list) {
+    items.value = list;
+    total.value = Number.isFinite(data?.total) ? data.total : list.length;
+    pages.value = Number.isFinite(data?.pages) ? data.pages : 1;
+    page.value = Number.isFinite(data?.page) ? data.page : 1;
   }
 }
 onMounted(load);
