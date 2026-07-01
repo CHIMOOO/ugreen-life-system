@@ -14,3 +14,4 @@ server/public/
 # 编辑器
 .DS_Store
 .vscode/
+CLAUDE.local.md
