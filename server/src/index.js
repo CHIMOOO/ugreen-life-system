@@ -82,6 +82,16 @@ function getPeriodRow(id) {
   return db.prepare('SELECT * FROM periods WHERE id = ?').get(id);
 }
 
+// 容错解析 DB 里的 JSON 文本字段（prizes/result/invalid_names）：损坏时回退默认，
+// 避免单条脏数据（如导入的异常备份）让整个接口 500。
+function safeJsonParse(text, fallback) {
+  try {
+    return JSON.parse(text ?? '');
+  } catch {
+    return fallback;
+  }
+}
+
 // 某一期录入的商品（含本期实际金额），供后台表单回填
 function periodProductItems(periodId) {
   return db
@@ -129,22 +139,16 @@ function serializePeriod(row, { withResult = false, withEntries = false, adminVi
     isActive: !!row.is_active,
     status: row.status,
     createdAt: row.created_at,
-    prizes: normalizePrizes(JSON.parse(row.prizes || '[]')),
+    prizes: normalizePrizes(safeJsonParse(row.prizes, [])),
     participantCount: countEntries(row.id),
     result: null,
     tea: teaEnabled ? teaPayload(row, teaExtraOpts(adminView)) : null,
     bill: { show: billShowEffective(row), ...billsForPeriod(row.id) },
     billShow: row.bill_show || 'inherit',
-    invalidNames: (() => {
-      try {
-        return JSON.parse(row.invalid_names || '[]');
-      } catch {
-        return [];
-      }
-    })(),
+    invalidNames: safeJsonParse(row.invalid_names, []),
   };
   if (withResult && row.status === 'drawn' && row.result) {
-    data.result = JSON.parse(row.result);
+    data.result = safeJsonParse(row.result, null);
   }
   if (withEntries) {
     data.entries = listEntries(row.id);
@@ -154,14 +158,21 @@ function serializePeriod(row, { withResult = false, withEntries = false, adminVi
 
 function buildResult(row) {
   const entries = db.prepare('SELECT name, number FROM entries WHERE period_id = ?').all(row.id);
-  const prizes = normalizePrizes(JSON.parse(row.prizes || '[]'));
-  let invalid = [];
-  try {
-    invalid = JSON.parse(row.invalid_names || '[]');
-  } catch {
-    /* ignore */
-  }
+  const prizes = normalizePrizes(safeJsonParse(row.prizes, []));
+  const invalid = safeJsonParse(row.invalid_names, []);
   return computeResult(entries, prizes, invalid);
+}
+
+// 后台单期完整详情：真实开关(adminView) + 参与者 + 结果 + 本期商品(含实际金额与内部字段)。
+// 所有「会返回期数」的后台写操作(activate/deactivate/draw/reopen/invalid 及增改)都用它，
+// 保证前端表单始终拿到完整、一致的数据（否则操作后商品列表/金额会短暂丢失）。
+function adminPeriodDetail(id) {
+  const row = getPeriodRow(id);
+  if (!row) return null;
+  const data = serializePeriod(row, { withResult: true, withEntries: true, adminView: true });
+  data.productItems = periodProductItems(row.id);
+  data.productIds = data.productItems.map((i) => i.id);
+  return data;
 }
 
 function adminAuth(req, res, next) {
@@ -418,11 +429,8 @@ app.get('/api/admin/periods', adminAuth, (req, res) => {
 });
 
 app.get('/api/admin/periods/:id', adminAuth, (req, res) => {
-  const row = getPeriodRow(req.params.id);
-  if (!row) return res.status(404).json({ error: 'not_found' });
-  const data = serializePeriod(row, { withResult: true, withEntries: true, adminView: true });
-  data.productItems = periodProductItems(row.id);
-  data.productIds = data.productItems.map((i) => i.id);
+  const data = adminPeriodDetail(req.params.id);
+  if (!data) return res.status(404).json({ error: 'not_found' });
   res.json(data);
 });
 
@@ -450,11 +458,7 @@ app.post('/api/admin/periods', adminAuth, (req, res) => {
     .run(i.title, i.style, i.lotteryEnabled, i.teaEnabled, i.prizes, i.hours, i.closeAt, i.billShow, nowIso());
   setPeriodProducts(info.lastInsertRowid, req.body?.products ?? req.body?.productIds);
   if (req.body?.activate) activatePeriod(info.lastInsertRowid);
-  const row = getPeriodRow(info.lastInsertRowid);
-  const data = serializePeriod(row, { withResult: true, withEntries: true, adminView: true });
-  data.productItems = periodProductItems(row.id);
-  data.productIds = data.productItems.map((i) => i.id);
-  res.json(data);
+  res.json(adminPeriodDetail(info.lastInsertRowid));
 });
 
 app.put('/api/admin/periods/:id', adminAuth, (req, res) => {
@@ -469,11 +473,7 @@ app.put('/api/admin/periods/:id', adminAuth, (req, res) => {
   ).run(i.title, i.style, i.lotteryEnabled, i.teaEnabled, i.prizes, keepHours, keepClose, i.billShow, row.id);
   if (req.body?.products !== undefined || req.body?.productIds !== undefined)
     setPeriodProducts(row.id, req.body.products ?? req.body.productIds);
-  const updated = getPeriodRow(row.id);
-  const data = serializePeriod(updated, { withResult: true, withEntries: true, adminView: true });
-  data.productItems = periodProductItems(row.id);
-  data.productIds = data.productItems.map((i) => i.id);
-  res.json(data);
+  res.json(adminPeriodDetail(row.id));
 });
 
 app.delete('/api/admin/periods/:id', adminAuth, (req, res) => {
@@ -490,13 +490,13 @@ app.post('/api/admin/periods/:id/activate', adminAuth, (req, res) => {
   const row = getPeriodRow(req.params.id);
   if (!row) return res.status(404).json({ error: 'not_found' });
   activatePeriod(row.id);
-  res.json(serializePeriod(getPeriodRow(row.id), { withResult: true, withEntries: true }));
+  res.json(adminPeriodDetail(row.id));
 });
 app.post('/api/admin/periods/:id/deactivate', adminAuth, (req, res) => {
   const row = getPeriodRow(req.params.id);
   if (!row) return res.status(404).json({ error: 'not_found' });
   db.prepare('UPDATE periods SET is_active = 0 WHERE id = ?').run(row.id);
-  res.json(serializePeriod(getPeriodRow(row.id), { withResult: true, withEntries: true }));
+  res.json(adminPeriodDetail(row.id));
 });
 
 // 模拟计算（不落库）
@@ -514,7 +514,7 @@ app.post('/api/admin/periods/:id/draw', adminAuth, (req, res) => {
   if (countEntries(row.id) === 0) return res.status(400).json({ error: 'no_entries' });
   const result = buildResult(row);
   db.prepare('UPDATE periods SET status = ?, result = ? WHERE id = ?').run('drawn', JSON.stringify(result), row.id);
-  res.json(serializePeriod(getPeriodRow(row.id), { withResult: true, withEntries: true }));
+  res.json(adminPeriodDetail(row.id));
 });
 
 // 撤销开奖
@@ -522,22 +522,16 @@ app.post('/api/admin/periods/:id/reopen', adminAuth, (req, res) => {
   const row = getPeriodRow(req.params.id);
   if (!row) return res.status(404).json({ error: 'not_found' });
   db.prepare('UPDATE periods SET status = ?, result = NULL WHERE id = ?').run('open', row.id);
-  res.json(serializePeriod(getPeriodRow(row.id), { withResult: true, withEntries: true, adminView: true }));
+  res.json(adminPeriodDetail(row.id));
 });
 
 // 判定某人有效/无效；若已开奖则重算（无效者顺延，二名递补一名）
 app.post('/api/admin/periods/:id/invalid', adminAuth, (req, res) => {
   const row = getPeriodRow(req.params.id);
   if (!row) return res.status(404).json({ error: 'not_found' });
-  const name = (req.body?.name ?? '').toString();
+  const name = (req.body?.name ?? '').toString().trim(); // 与 entries 存储的姓名一致地去空白，否则判无效对不上人、名次不顺延
   const makeInvalid = !!req.body?.invalid;
-  let list = [];
-  try {
-    list = JSON.parse(row.invalid_names || '[]');
-  } catch {
-    /* ignore */
-  }
-  const set = new Set(list);
+  const set = new Set(safeJsonParse(row.invalid_names, []));
   if (makeInvalid) set.add(name);
   else set.delete(name);
   db.prepare('UPDATE periods SET invalid_names = ? WHERE id = ?').run(JSON.stringify([...set]), row.id);
@@ -546,7 +540,7 @@ app.post('/api/admin/periods/:id/invalid', adminAuth, (req, res) => {
     const result = buildResult(getPeriodRow(row.id));
     db.prepare('UPDATE periods SET result = ? WHERE id = ?').run(JSON.stringify(result), row.id);
   }
-  res.json(serializePeriod(getPeriodRow(row.id), { withResult: true, withEntries: true, adminView: true }));
+  res.json(adminPeriodDetail(row.id));
 });
 
 // 图片上传：内存接收 → 统一转码为体积最小的 WebP（质量由系统设置 image_quality 决定，默认 90）。
