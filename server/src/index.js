@@ -21,6 +21,8 @@ import { toWebp } from './imagePipeline.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 41131;
+// 监听地址：默认 0.0.0.0（局域网内其他机器也能访问）；需要只绑本机时设 HOST=127.0.0.1。
+const HOST = process.env.HOST || '0.0.0.0';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 // 后台凭据 = SHA-256(固定盐 + 管理密码)。前端登录前在本地算好哈希再发送，明文密码绝不出网；
 // 该哈希即后续所有 /api/admin/* 请求头 x-admin-token，后端逐请求恒定时比对。改 ADMIN_PASSWORD 即换凭据。
@@ -690,6 +692,6 @@ if (fs.existsSync(webDir)) {
   });
 }
 
-app.listen(PORT, () => {
-  console.log(`生活系统后端已启动: http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`生活系统后端已启动: http://localhost:${PORT} (监听 ${HOST}:${PORT})`);
 });

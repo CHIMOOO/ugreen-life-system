@@ -5,6 +5,7 @@ import vue from '@vitejs/plugin-vue';
 export default defineConfig({
   plugins: [vue()],
   server: {
+    host: '0.0.0.0', // 绑定所有网卡，局域网内其他机器可访问 dev 服务
     port: 41132,
     proxy: {
       '/api': 'http://localhost:41131',
