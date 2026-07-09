@@ -23,7 +23,7 @@
 
 ## 2. 数据模型（`server/src/db.js`）
 
-- `settings(key, value)` — 全部系统配置。默认值见 `DEFAULT_SETTINGS`，新增配置就加一行默认值 + 在 `getConfig()` 暴露 + 在 `index.js` 的 `PUT /api/admin/config` 接收。
+- `settings(key, value)` — 全部系统配置。默认值见 `DEFAULT_SETTINGS`，新增配置就加一行默认值 + 在 `getConfig()` 暴露 + 在 `index.js` 的 `PUT /api/admin/config` 接收。**运行时 setting**（不写进 `DEFAULT_SETTINGS`、不经 `getConfig` 下发）：`admin_password_hash`（改密后的管理凭据哈希，见 §4）、`random_theme_current`/`random_theme_picked_at`（随机主题锁定）。
 - `periods` — 期数。关键列：`style`、`lottery_enabled`、`tea_enabled`、`is_active`、`status`(open|drawn)、`prizes`(JSON)、`result`(JSON)、`tea_rating_hours`、`tea_close_at`、`bill_show`(inherit|on|off)、`invalid_names`(JSON)。
 - `entries` — 抽奖参与者。`UNIQUE(period_id,name)` 与 `UNIQUE(period_id,number)` 双防重复。
 - `tea_products` — **全局**下午茶商品库。`price` 是**预设价**；`channel/qty` 是内部字段。
@@ -43,13 +43,19 @@
 props: period, config, submitting, submitState, votedProducts, ratingBusy
 emits: submit({name,number}), rate({productId, level})
 computed: isDrawn, lotteryOn(=period.lotteryEnabled), teaOn(=period.teaEnabled && tea.products.length),
-          joined, showForm, result, prizeGroups
-四大板块: ① 头部(config 名称+期标题+状态) ② 抽奖(表单/已参与/结果含算法推导) ③ 下午茶(本期账单+多商品评分) ④ 规则
+          joined, showForm, result, prizeGroups, skipped(被判无效而顺延的人)
+四大板块: ① 头部(config 名称+期标题+状态) ② 抽奖(表单/已参与/结果含算法推导+无效顺延块) ③ 下午茶(本期账单+多商品评分) ④ 规则
 ```
-共享工具在 `web/src/useLottery.js`：`useLotteryForm / stepExplain / winnersByPrize / TEA_LEVELS / teaExtraText / getClientId / 本地参与&评分记录`。
-表单/评分逻辑收敛在 `web/src/usePeriodShell.js`（Home 与 Lottery 复用）。
+共享工具在 `web/src/useLottery.js`：`useLotteryForm / stepExplain / winnersByPrize / skippedInvalids / TEA_LEVELS / teaExtraText / getClientId / 本地参与&评分记录`。
+表单/评分逻辑收敛在 `web/src/usePeriodShell.js`（Home 与 Lottery 复用）；派生状态在 `web/src/useStyleShell.js`（含 `skipped`）。
 
 **规则可见性**特例：规则区按**系统级**开关 `config.lotteryModuleEnabled/teaModuleEnabled` 显示（即使当期未开该模块，首页仍按后台设置展示规则）；而抽奖/下午茶**板块本身**按 `lotteryOn/teaOn`（期数级，已被后端 mask 含系统级）显示。
+
+**规则用 Markdown 渲染**：`config.rulesLottery/rulesTea` 是 **Markdown 文本**（后台「系统设置 → 规则文案」可编辑，默认见 `db.js` `DEFAULT_SETTINGS`——抽奖规则含「匿名(工号)/实名」两种参与方式）。前端统一用 `web/src/components/Markdown.vue`（极简渲染：`#` 标题 / `**加粗**` / `-` 与 `1.` 列表 / 空行分段，先转义 HTML）在 12 套 style + `NoEvent` + `ConfirmSubmitDialog` 里渲染。**别再用 `whitespace-pre-line` 直插纯文本**。`seed.js` 会把规则重置为 DEFAULT（reseed 即刷新）；现有库改默认后需在后台点「恢复服务器默认」才生效。
+
+**奖品图锁定 16:9**：12 套 style 里奖品图（列表 `z.image` + 中奖名单 `g.image`）都用 `aspect-video`（开奖前后一致）；**下午茶商品图仍是 `h-44`**（别混改）。生成图尺寸/构图见 `image-spec` skill（已明确**允许品牌 logo**）。
+
+**无效顺延展示**：`useLottery.js#skippedInvalids(result)` 从 `result.ranking/winners` 推出「被判无效、落在中奖区间因而被跳过、由后一位递补」的人（落在名额填满之后的无效者不算）；`useStyleShell` 暴露 `skipped`，12 套 style 结果区据此在中奖名单与算法推导之间展示「⚖ 无效顺延」块。
 
 ### 给 12 套 style 做同一处改动 → 用 workflow 扇出
 先在 `Style1Maximalism.vue`（参考实现）改好，再用 Workflow 对 `Style2..Style12` 并行做同样的小改动，prompt 里贴清「改哪里、参考 Style1、只改这一处」。本仓库已这样做过多次（占位提示、规则可见性、本期账单块等）。
@@ -63,7 +69,7 @@ computed: isDrawn, lotteryOn(=period.lotteryEnabled), teaOn(=period.teaEnabled &
 - 开奖算法 `server/src/lottery.js#computeResult(entries, prizes, invalid)`：先算**全量抽取排名** `ranking`，再按奖品顺序分配、**跳过无效者顺延**。`steps`/`winners` 与无 invalid 时完全兼容。改算法务必保持 `result` 字段形状（前端 12 套都依赖）。
 - 图片上传 `POST /api/admin/upload`：multer 内存接收 → `server/src/imagePipeline.js#toWebp` 用 **@jsquash（纯 WASM，无原生依赖）** 把 jpeg/png/webp 统一转成体积最小的 **WebP**，质量由系统设置 `image_quality`（1-100，默认 90，后台「图片上传」可改）决定；gif/svg 等不支持的格式或转码失败时**按原文件落盘**（不丢图）。坑：Node 的 `fetch` 不支持 `file://`，而 @jsquash 默认用 fetch 加载随包 `.wasm`——`imagePipeline.js` 顶部打了个 `file://` fetch 补丁兜住，**不要删**；否则上传转码会以 `fetch failed` 失败（会自动回退原图，但就没压缩了）。
 - **指纹**：核心引擎是开源库 **`@fingerprintjs/fingerprintjs`（v5，MIT，纯前端随包打包，无 CDN）**，在 `web/src/fingerprint.js` 里 `load({monitoring:false}).get()` 拿 `{visitorId, confidence, components}`——`visitorId` 作为稳定「指纹 id」，`components`（40+ 项：canvas/audio/字体/WebGL/屏幕/时区…）即后台「原始全量信号」。再叠一层高熵 UA-Client-Hints（`navigator.userAgentData.getHighEntropyValues`，FPJS 不采、需安全上下文）。API 仍是 `initFingerprint()`（进页面预热）+ `getFingerprint()`（提交时取，2.5s 超时兜底）。落库形状：`recordFingerprint` 存 `details = {id, summary, client:<compute().details>, server:<serverSignals>}`；`client` 里既有规范化字段（`visitorId/confidence/fpVersion/webgl.renderer/screen/timezone/fonts[]/canvasHash…` 供后台「关键信号一览」）又有原始 `fingerprintjs` components。**80KB 上限**：正常 FPJS 全量在 10~40KB，超限（多半恶意灌大）只留摘要+服务端信号。后台 `admin/UserManagement.vue#fpView` 消费 `details.client.*`，改形状要同步它。
-- 鉴权：后台凭据 = `SHA-256('aiot-life::' + ADMIN_PASSWORD)`（盐 `ADMIN_SALT` 前后端写死一致）。前端登录前在本地算好哈希再发（`admin/src/api.js` 的 `hashPassword`，用 `js-sha256` 纯 JS 实现——HTTP 非安全上下文也能算，不依赖只在 HTTPS/localhost 才有的 `crypto.subtle`），**明文密码不出网**；该哈希即后续所有 `/api/admin/*` 的请求头 `x-admin-token`，后端 `adminAuth` 用 `crypto.timingSafeEqual` 恒定时比对。登录 `POST /api/admin/login` 收这个哈希（也兼容明文密码作回退，便于脚本）。改 `ADMIN_PASSWORD`（`server/.env`，启动带 `--env-file-if-exists=.env`）即换凭据；旧的 `ADMIN_TOKEN` 环境变量已废弃。改盐或哈希算法务必前后端同步改。
+- 鉴权：后台凭据 = `SHA-256('aiot-life::' + ADMIN_PASSWORD)`（盐 `ADMIN_SALT` 前后端写死一致）。前端登录前在本地算好哈希再发（`admin/src/api.js` 的 `hashPassword`，用 `js-sha256` 纯 JS 实现——HTTP 非安全上下文也能算，不依赖只在 HTTPS/localhost 才有的 `crypto.subtle`），**明文密码不出网**；该哈希即后续所有 `/api/admin/*` 的请求头 `x-admin-token`，后端 `adminAuth` 用 `crypto.timingSafeEqual` 恒定时比对。登录 `POST /api/admin/login` 收这个哈希（也兼容明文密码作回退，便于脚本）。改 `ADMIN_PASSWORD`（`server/.env`，启动带 `--env-file-if-exists=.env`）即换**默认**凭据；旧的 `ADMIN_TOKEN` 环境变量已废弃。改盐或哈希算法务必前后端同步改。**后台可改密码**：`POST /api/admin/change-password`（验证旧密码后把新哈希写进 settings 的 `admin_password_hash`；前台在「系统设置 → 修改管理员密码」）。此后**当前凭据以库中哈希为准**——`currentAdminToken()`：有合法 `admin_password_hash` 就用它，否则回退 `ADMIN_PASSWORD` 派生哈希；`login`/`adminAuth` 每次实时读取，故改密后旧 token 立即失效、环境变量密码也失效。导入旧备份会覆盖 settings、可能清掉该行 → 自动回退环境变量密码（相当于一条找回途径）。
 
 ## 5. 约定
 
