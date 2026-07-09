@@ -1,0 +1,12 @@
+[mcp_servers.gitlab]
+command = "npx"
+args = [
+    "-y",
+    "@zereight/mcp-gitlab",
+]
+
+[mcp_servers.gitlab.env]
+GITLAB_PERSONAL_ACCESS_TOKEN = "glpat-jXb_D6JXHLyLCaFDobgbi286MQp1OjkH.01.0w17bqti7"
+GITLAB_API_URL = "https://clients-gitlab.ugreeniot.com/api/v4"
+NO_PROXY = "clients-gitlab.ugreeniot.com,.ugreeniot.com"
+no_proxy = "clients-gitlab.ugreeniot.com,.ugreeniot.com"
