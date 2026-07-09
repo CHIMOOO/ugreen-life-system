@@ -48,7 +48,7 @@ const wobble = (i) => WOBBLES[((i % WOBBLES.length) + WOBBLES.length) % WOBBLES.
 // 本文件只保留自己的视觉（配色 ACCENTS + 模板）。
 const {
   name, number, localError, showConfirm, pending, confirmCancel,
-  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, errorMsg,
+  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
   doSubmit, confirmSubmit, doRate, doCancel,
 } = useStyleShell(props, emit);
 // 「已参与」面板两步撤销的确认态 confirmCancel、doCancel 均来自 useStyleShell
@@ -192,6 +192,17 @@ const {
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- 无效顺延：有中奖者被判无效时，展示这条规则与受影响的人 -->
+          <div v-if="skipped.length" class="border-[3px] border-sketch-red bg-sketch-red/10 p-6 shadow-sketch-lg sm:p-8 wobbly-md">
+            <h3 class="font-kalam text-2xl font-bold text-sketch-red">⚖ 无效顺延</h3>
+            <p class="mt-2 font-patrick text-base leading-relaxed text-sketch-ink/80">下列参与者因<b class="text-sketch-red">重复提交 / 冒用姓名等被判无效</b>，已取消其中奖资格；空出的名额按规则由后一位<b class="text-sketch-blue">顺延递补</b>（所以最终名单里出现了原本靠后的人）。</p>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <span v-for="(s, si) in skipped" :key="si" class="border-[3px] border-sketch-red/60 bg-white px-4 py-2 font-patrick font-bold text-sketch-ink shadow-sketch-soft wobbly-pill">
+                {{ s.name }} · <span class="text-sketch-red line-through">{{ s.number }}</span>
+              </span>
             </div>
           </div>
 

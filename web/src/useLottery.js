@@ -35,6 +35,23 @@ export function winnersByPrize(result) {
   return [...map.values()];
 }
 
+// 被判无效、且落在「中奖区间」内因而触发顺延的参与者（供结果页展示「无效顺延」规则）。
+// 逻辑：按抽取排名 ranking 从前往后数「有效者」，凑够 winners.length 个名额即停；
+// 期间遇到的无效者就是被跳过、导致后一位递补的人。返回 [{rank,name,number}...]，无则空数组。
+// 若某无效者排在名额填满之后（本来也中不了），不算顺延、不列出。
+export function skippedInvalids(result) {
+  if (!result || !Array.isArray(result.ranking) || !Array.isArray(result.winners)) return [];
+  const totalSlots = result.winners.length;
+  let valid = 0;
+  const skipped = [];
+  for (const r of result.ranking) {
+    if (valid >= totalSlots) break; // 名额已满，之后的无效者本就中不了，不算顺延
+    if (r.invalid) skipped.push({ rank: r.rank, name: r.name, number: r.number });
+    else valid++;
+  }
+  return skipped;
+}
+
 // 姓名记忆：用户填过一次后存浏览器，之后各页自动回填
 export function getStoredName() {
   try {

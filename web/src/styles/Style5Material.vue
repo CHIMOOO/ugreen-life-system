@@ -37,7 +37,7 @@ const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
 // 本文件只保留自己的视觉（配色 ACCENTS + 模板）。
 const {
   name, number, localError, showConfirm, pending, confirmCancel,
-  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, errorMsg,
+  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
   doSubmit, confirmSubmit, doRate, doCancel,
 } = useStyleShell(props, emit);
 // 「已参与」面板两步撤销的确认态 confirmCancel、doCancel 均来自 useStyleShell
@@ -202,6 +202,17 @@ const {
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- 无效顺延：有中奖者被判无效时，展示这条规则与受影响的人 -->
+          <div v-if="skipped.length" class="rounded-[28px] bg-md-error/10 p-6 md-elev-1 sm:p-8">
+            <h3 class="text-xl font-normal text-md-error sm:text-2xl">⚖ 无效顺延</h3>
+            <p class="mt-2 text-sm leading-relaxed text-md-onSurface/80">下列参与者因<b class="font-medium text-md-error">重复提交 / 冒用姓名等被判无效</b>，已取消其中奖资格；空出的名额按规则由后一位<b class="font-medium text-md-tertiary">顺延递补</b>（所以最终名单里出现了原本靠后的人）。</p>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <span v-for="(s, si) in skipped" :key="si" class="inline-flex items-center gap-1.5 rounded-full bg-md-surface px-4 py-2 text-sm font-medium text-md-onSurface md-elev-1">
+                {{ s.name }} · <span class="text-md-error line-through">{{ s.number }}</span>
+              </span>
             </div>
           </div>
 

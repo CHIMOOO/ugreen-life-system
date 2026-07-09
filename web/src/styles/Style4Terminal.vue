@@ -37,7 +37,7 @@ const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
 // 本文件只保留自己的视觉（配色 ACCENTS + 模板）。
 const {
   name, number, localError, showConfirm, pending, confirmCancel,
-  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, errorMsg,
+  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
   doSubmit, confirmSubmit, doRate, doCancel,
 } = useStyleShell(props, emit);
 
@@ -197,6 +197,17 @@ function asciiBar(rate) {
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- 无效顺延：有中奖者被判无效时，展示这条规则与受影响的人 -->
+          <div v-if="skipped.length" class="term-box border-term-red bg-term-panel p-5 sm:p-7">
+            <h3 class="text-lg font-bold uppercase text-term-red">[ 无效顺延 ] // skipped</h3>
+            <p class="mt-2 text-sm leading-relaxed text-term-fg/85"># 下列参与者因<b class="text-term-red">重复提交 / 冒用姓名等被判无效</b>，已取消其中奖资格；空出的名额按规则由后一位<b class="text-term-amber">顺延递补</b>（所以最终名单里出现了原本靠后的人）。</p>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <span v-for="(s, si) in skipped" :key="si" class="border border-term-red bg-term-red/10 px-3 py-1 text-sm text-term-fg/85">
+                {{ s.name }} · <span class="font-bold text-term-red line-through">{{ s.number }}</span>
+              </span>
             </div>
           </div>
 

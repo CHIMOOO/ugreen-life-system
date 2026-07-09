@@ -41,7 +41,7 @@ const candy = (i) => CANDY[((i % CANDY.length) + CANDY.length) % CANDY.length];
 // 本文件只保留自己的视觉（配色 ACCENTS + 模板）。
 const {
   name, number, localError, showConfirm, pending, confirmCancel,
-  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, errorMsg,
+  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
   doSubmit, confirmSubmit, doRate, doCancel,
 } = useStyleShell(props, emit);
 // 「已参与」面板两步撤销的确认态 confirmCancel、doCancel 均来自 useStyleShell
@@ -208,6 +208,18 @@ const {
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- 无效顺延：有中奖者被判无效时，展示这条规则与受影响的人 -->
+          <div v-if="skipped.length" class="relative rounded-[28px] border-[3px] border-geo-ink bg-white p-6 geo-shadow sm:p-8">
+            <span class="absolute -left-3 -top-3 h-8 w-8 rounded-full border-[3px] border-geo-ink bg-geo-coral"></span>
+            <h3 class="font-fredoka text-2xl font-bold text-geo-coral">⚖ 无效顺延</h3>
+            <p class="mt-2 leading-relaxed text-geo-ink/70">下列参与者因<b class="text-geo-coral">重复提交 / 冒用姓名等被判无效</b>，已取消其中奖资格；空出的名额按规则由后一位<b class="text-geo-teal">顺延递补</b>（所以最终名单里出现了原本靠后的人）。</p>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <span v-for="(s, si) in skipped" :key="si" class="rounded-full border-[3px] border-geo-ink bg-geo-bg px-4 py-2 font-fredoka text-sm font-bold text-geo-ink">
+                {{ s.name }} · <span class="text-geo-coral line-through">{{ s.number }}</span>
+              </span>
             </div>
           </div>
 

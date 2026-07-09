@@ -1,5 +1,5 @@
 import { ref, computed, watch } from 'vue';
-import { useLotteryForm, winnersByPrize } from './useLottery.js';
+import { useLotteryForm, winnersByPrize, skippedInvalids } from './useLottery.js';
 
 // 12 套 style 的「交互逻辑」完全一致，只有配色与模板不同。
 // 这里把抽奖表单/规则确认弹窗/评分/撤销与全部派生状态收敛到一处：
@@ -24,6 +24,8 @@ export function useStyleShell(props, emit) {
   const showForm = computed(() => lotteryOn.value && !isDrawn.value && !joined.value);
   const result = computed(() => props.period.result);
   const prizeGroups = computed(() => (result.value ? winnersByPrize(result.value) : []));
+  // 被判无效而触发顺延递补的参与者（有则在结果页展示「无效顺延」规则块）
+  const skipped = computed(() => (result.value ? skippedInvalids(result.value) : []));
   const errorMsg = computed(
     () => localError.value || (props.submitState.status === 'error' ? props.submitState.message : '')
   );
@@ -52,7 +54,7 @@ export function useStyleShell(props, emit) {
 
   return {
     name, number, localError, showConfirm, pending, confirmCancel,
-    isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, errorMsg,
+    isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
     doSubmit, confirmSubmit, doRate, doCancel,
   };
 }

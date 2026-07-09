@@ -38,7 +38,7 @@ const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
 // 本文件只保留自己的视觉（配色 ACCENTS + 模板）。
 const {
   name, number, localError, showConfirm, pending, confirmCancel,
-  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, errorMsg,
+  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
   doSubmit, confirmSubmit, doRate, doCancel,
 } = useStyleShell(props, emit);
 // 「已参与」面板两步撤销的确认态 confirmCancel、doCancel 均来自 useStyleShell
@@ -183,6 +183,17 @@ const {
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- 无效顺延：有中奖者被判无效时，展示这条规则与受影响的人 -->
+          <div v-if="skipped.length" class="neu-flat rounded-[28px] p-6 sm:p-8">
+            <h3 class="text-xl font-semibold text-neu-accent sm:text-2xl">⚖ 无效顺延</h3>
+            <p class="mt-2 text-sm leading-relaxed text-neu-fg/80">下列参与者因<b class="font-semibold text-neu-accent">重复提交 / 冒用姓名等被判无效</b>，已取消其中奖资格；空出的名额按规则由后一位<b class="font-semibold text-neu-fg">顺延递补</b>（所以最终名单里出现了原本靠后的人）。</p>
+            <div class="mt-4 flex flex-wrap gap-3">
+              <span v-for="(s, si) in skipped" :key="si" class="neu-raised-sm rounded-full px-4 py-2 text-sm font-medium text-neu-fg">
+                {{ s.name }} · <span class="font-semibold text-neu-accent line-through">{{ s.number }}</span>
+              </span>
             </div>
           </div>
 

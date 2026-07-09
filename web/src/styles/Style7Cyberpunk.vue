@@ -41,7 +41,7 @@ const accent = (i) => ACCENTS[((i % ACCENTS.length) + ACCENTS.length) % ACCENTS.
 // 本文件只保留自己的视觉（配色 ACCENTS + 模板）。
 const {
   name, number, localError, showConfirm, pending, confirmCancel,
-  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, errorMsg,
+  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
   doSubmit, confirmSubmit, doRate, doCancel,
 } = useStyleShell(props, emit);
 
@@ -179,6 +179,17 @@ const {
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- 无效顺延：有中奖者被判无效时，展示这条规则与受影响的人 -->
+          <div v-if="skipped.length" class="cyber-clip border border-cyber-pink/60 bg-cyber-panel/80 p-6 cyber-glow-pink backdrop-blur sm:p-8">
+            <h3 class="font-orbitron text-2xl font-black uppercase tracking-wide text-cyber-pink cyber-text-pink">⚖ 无效顺延</h3>
+            <p class="mt-2 font-mono text-sm leading-relaxed text-cyber-fg/80">下列参与者因<b class="text-cyber-pink">重复提交 / 冒用姓名等被判无效</b>，已取消其中奖资格；空出的名额按规则由后一位<b class="text-cyber-green">顺延递补</b>（所以最终名单里出现了原本靠后的人）。</p>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <span v-for="(s, si) in skipped" :key="si" class="cyber-clip border border-cyber-pink/50 bg-black/50 px-4 py-2 font-mono text-sm font-bold text-cyber-fg/85">
+                {{ s.name }} · <span class="text-cyber-pink line-through">{{ s.number }}</span>
+              </span>
             </div>
           </div>
 

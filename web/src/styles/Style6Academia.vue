@@ -43,7 +43,7 @@ const roman = (i) => ROMAN[i] || String(i + 1);
 // 本文件只保留自己的视觉（配色 ACCENTS + 模板）。
 const {
   name, number, localError, showConfirm, pending, confirmCancel,
-  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, errorMsg,
+  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
   doSubmit, confirmSubmit, doRate, doCancel,
 } = useStyleShell(props, emit);
 // 「已参与」面板两步撤销的确认态 confirmCancel、doCancel 均来自 useStyleShell
@@ -200,6 +200,17 @@ const {
                   </li>
                 </ul>
               </div>
+            </div>
+          </div>
+
+          <!-- 无效顺延：有中奖者被判无效时，展示这条规则与受影响的人 -->
+          <div v-if="skipped.length" class="aca-frame border-l-4 border-aca-burgundy bg-aca-panel p-6 sm:p-8">
+            <h3 class="font-playfair text-2xl font-bold italic text-aca-burgundy">⚖ 无效顺延</h3>
+            <p class="mt-2 leading-relaxed text-aca-brown">下列参与者因<b class="text-aca-burgundy">重复提交 / 冒用姓名等被判无效</b>，已取消其中奖资格；空出的名额按规则由后一位<b class="text-aca-forest">顺延递补</b>（所以最终名单里出现了原本靠后的人）。</p>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <span v-for="(s, si) in skipped" :key="si" class="rounded-full border border-aca-burgundy/50 bg-aca-paper px-4 py-2 font-garamond font-semibold text-aca-ink">
+                {{ s.name }} · <span class="font-playfair italic text-aca-burgundy line-through">{{ s.number }}</span>
+              </span>
             </div>
           </div>
 
