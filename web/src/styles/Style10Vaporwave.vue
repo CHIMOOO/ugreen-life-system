@@ -136,9 +136,9 @@ const {
             <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div v-for="(z, i) in period.prizes" :key="i" class="overflow-hidden rounded-2xl border bg-vapor-panel/60 vapor-glow backdrop-blur" :style="{ borderColor: accent(i) }">
                 <button v-if="z.image" type="button" @click="openZoom(assetUrl(z.image))" class="block w-full cursor-zoom-in">
-                  <img :src="assetUrl(z.image)" class="h-44 w-full object-cover transition hover:brightness-110" :alt="z.name" />
+                  <img :src="assetUrl(z.image)" class="aspect-video w-full object-cover transition hover:brightness-110" :alt="z.name" />
                 </button>
-                <div v-else class="grid h-44 w-full place-items-center text-6xl" :style="{ backgroundColor: accent(i) + '33' }">🎁</div>
+                <div v-else class="grid aspect-video w-full place-items-center text-6xl" :style="{ backgroundColor: accent(i) + '33' }">🎁</div>
                 <div class="min-w-0 p-4">
                   <p class="truncate font-orbitron font-black uppercase" :style="{ color: accent(i) }">{{ z.name }}</p>
                   <p class="text-sm text-vapor-fg/70">{{ z.qty }} 个名额</p>
@@ -179,7 +179,7 @@ const {
             <div class="mt-8 grid gap-5 sm:grid-cols-2">
               <div v-for="(g, gi) in prizeGroups" :key="gi" class="rounded-2xl border bg-vapor-panel/70 p-6 vapor-glow backdrop-blur" :style="{ borderColor: accent(gi) }">
                 <div class="flex items-center gap-4">
-                  <div class="h-14 w-14 shrink-0 overflow-hidden rounded-xl border" :style="{ borderColor: accent(gi + 2) }">
+                  <div class="aspect-video w-24 shrink-0 overflow-hidden rounded-xl border" :style="{ borderColor: accent(gi + 2) }">
                     <img v-if="g.image" :src="assetUrl(g.image)" class="h-full w-full object-cover" :alt="g.prizeName" />
                     <div v-else class="grid h-full w-full place-items-center text-2xl" :style="{ backgroundColor: accent(gi) + '33' }">🎁</div>
                   </div>

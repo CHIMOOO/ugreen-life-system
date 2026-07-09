@@ -126,9 +126,9 @@ const {
             <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div v-for="(z, i) in period.prizes" :key="i" class="overflow-hidden cyber-clip border bg-cyber-panel/80 backdrop-blur" :style="{ borderColor: accent(i), boxShadow: '0 0 10px ' + accent(i) + '66, 0 0 24px ' + accent(i) + '33' }">
                 <button v-if="z.image" type="button" @click="openZoom(assetUrl(z.image))" class="block w-full cursor-zoom-in">
-                  <img :src="assetUrl(z.image)" class="h-44 w-full object-cover transition hover:brightness-110" :alt="z.name" />
+                  <img :src="assetUrl(z.image)" class="aspect-video w-full object-cover transition hover:brightness-110" :alt="z.name" />
                 </button>
-                <div v-else class="grid h-44 w-full place-items-center text-6xl" :style="{ backgroundColor: accent(i) + '22' }">🎁</div>
+                <div v-else class="grid aspect-video w-full place-items-center text-6xl" :style="{ backgroundColor: accent(i) + '22' }">🎁</div>
                 <div class="p-4">
                   <p class="truncate font-orbitron text-sm font-black uppercase" :style="{ color: accent(i) }">{{ z.name }}</p>
                   <p class="font-mono text-sm text-cyber-fg/60">{{ z.qty }} 个名额</p>
@@ -167,7 +167,7 @@ const {
             <div class="mt-8 grid gap-5 sm:grid-cols-2">
               <div v-for="(g, gi) in prizeGroups" :key="gi" class="cyber-clip border bg-cyber-panel/80 p-6 backdrop-blur" :style="{ borderColor: accent(gi), boxShadow: '0 0 10px ' + accent(gi) + '66, 0 0 24px ' + accent(gi) + '33' }">
                 <div class="flex items-center gap-4">
-                  <div class="h-14 w-14 shrink-0 overflow-hidden cyber-clip border" :style="{ borderColor: accent(gi + 2) }">
+                  <div class="aspect-video w-24 shrink-0 overflow-hidden cyber-clip border" :style="{ borderColor: accent(gi + 2) }">
                     <img v-if="g.image" :src="assetUrl(g.image)" class="h-full w-full object-cover" :alt="g.prizeName" />
                     <div v-else class="grid h-full w-full place-items-center text-2xl" :style="{ backgroundColor: accent(gi) + '22' }">🎁</div>
                   </div>

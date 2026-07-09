@@ -146,9 +146,9 @@ const {
                 class="relative overflow-hidden rounded-[28px] border-[3px] border-geo-ink bg-white geo-shadow transition hover:-translate-y-1">
                 <span class="absolute -left-2.5 -top-2.5 z-10 h-7 w-7 rounded-[8px] border-[3px] border-geo-ink" :style="{ backgroundColor: candy(i) }"></span>
                 <button v-if="z.image" type="button" @click="openZoom(assetUrl(z.image))" class="block w-full cursor-zoom-in">
-                  <img :src="assetUrl(z.image)" class="h-44 w-full border-b-[3px] border-geo-ink object-cover transition hover:brightness-105" :alt="z.name" />
+                  <img :src="assetUrl(z.image)" class="aspect-video w-full border-b-[3px] border-geo-ink object-cover transition hover:brightness-105" :alt="z.name" />
                 </button>
-                <div v-else class="grid h-44 w-full place-items-center border-b-[3px] border-geo-ink text-6xl" :style="{ backgroundColor: candy(i) + '33' }">🎁</div>
+                <div v-else class="grid aspect-video w-full place-items-center border-b-[3px] border-geo-ink text-6xl" :style="{ backgroundColor: candy(i) + '33' }">🎁</div>
                 <div class="min-w-0 p-4">
                   <p class="truncate font-fredoka text-lg font-bold" :style="{ color: candy(i) }">{{ z.name }}</p>
                   <p class="text-sm font-semibold text-geo-ink/50">{{ z.qty }} 个名额</p>
@@ -194,7 +194,7 @@ const {
                 class="relative rounded-[28px] border-[3px] border-geo-ink bg-white p-6 geo-shadow transition hover:-translate-y-1">
                 <span class="absolute -left-3 -top-3 h-8 w-8 rounded-full border-[3px] border-geo-ink" :style="{ backgroundColor: candy(gi) }"></span>
                 <div class="flex items-center gap-4">
-                  <div class="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border-[3px] border-geo-ink">
+                  <div class="aspect-video w-24 shrink-0 overflow-hidden rounded-2xl border-[3px] border-geo-ink">
                     <img v-if="g.image" :src="assetUrl(g.image)" class="h-full w-full object-cover" :alt="g.prizeName" />
                     <div v-else class="grid h-full w-full place-items-center text-2xl" :style="{ backgroundColor: candy(gi) + '33' }">🎁</div>
                   </div>

@@ -129,9 +129,9 @@ const {
             <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div v-for="(z, i) in period.prizes" :key="i" class="neu-raised overflow-hidden rounded-[24px]">
                 <button v-if="z.image" type="button" @click="openZoom(assetUrl(z.image))" class="block w-full cursor-zoom-in">
-                  <img :src="assetUrl(z.image)" class="h-44 w-full object-cover transition hover:brightness-105" :alt="z.name" />
+                  <img :src="assetUrl(z.image)" class="aspect-video w-full object-cover transition hover:brightness-105" :alt="z.name" />
                 </button>
-                <div v-else class="grid h-44 w-full place-items-center bg-neu-bg text-6xl">🎁</div>
+                <div v-else class="grid aspect-video w-full place-items-center bg-neu-bg text-6xl">🎁</div>
                 <div class="min-w-0 p-4">
                   <p class="truncate font-semibold text-neu-fg">{{ z.name }}</p>
                   <p class="text-sm text-neu-muted">{{ z.qty }} 个名额</p>
@@ -171,7 +171,7 @@ const {
             <div class="mt-8 grid gap-5 sm:grid-cols-2">
               <div v-for="(g, gi) in prizeGroups" :key="gi" class="neu-raised rounded-[28px] p-6">
                 <div class="flex items-center gap-4">
-                  <div class="neu-pressed grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl">
+                  <div class="neu-pressed grid aspect-video w-24 shrink-0 place-items-center overflow-hidden rounded-2xl">
                     <img v-if="g.image" :src="assetUrl(g.image)" class="h-full w-full rounded-2xl object-cover" :alt="g.prizeName" />
                     <div v-else class="grid h-full w-full place-items-center text-2xl">🎁</div>
                   </div>

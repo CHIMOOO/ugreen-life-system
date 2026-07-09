@@ -146,9 +146,9 @@ const {
               <div v-for="(z, i) in period.prizes" :key="i"
                 class="overflow-hidden border-4 border-bau-ink bg-white shadow-bau-sm transition-transform duration-200 ease-out hover:-translate-y-1">
                 <button v-if="z.image" type="button" @click="openZoom(assetUrl(z.image))" class="block w-full cursor-zoom-in border-b-4 border-bau-ink">
-                  <img :src="assetUrl(z.image)" class="h-44 w-full object-cover transition hover:brightness-105" :alt="z.name" />
+                  <img :src="assetUrl(z.image)" class="aspect-video w-full object-cover transition hover:brightness-105" :alt="z.name" />
                 </button>
-                <div v-else class="grid h-44 w-full place-items-center border-b-4 border-bau-ink text-6xl" :style="{ backgroundColor: primary(i) }">🎁</div>
+                <div v-else class="grid aspect-video w-full place-items-center border-b-4 border-bau-ink text-6xl" :style="{ backgroundColor: primary(i) }">🎁</div>
                 <div class="min-w-0 p-4">
                   <p class="truncate text-lg font-black uppercase tracking-tight">{{ z.name }}</p>
                   <p class="text-sm font-bold uppercase tracking-widest text-bau-ink/55">{{ z.qty }} 个名额</p>
@@ -196,7 +196,7 @@ const {
               <div v-for="(g, gi) in prizeGroups" :key="gi" class="relative border-4 border-bau-ink bg-white p-6 shadow-bau-md transition-transform duration-200 ease-out hover:-translate-y-1">
                 <span aria-hidden="true" class="absolute -right-3 -top-3 h-7 w-7 border-2 border-bau-ink" :class="gi % 2 ? 'rounded-full' : 'rounded-none'" :style="{ backgroundColor: primary(gi) }"></span>
                 <div class="flex items-center gap-4">
-                  <div class="grid h-14 w-14 shrink-0 place-items-center overflow-hidden border-2 border-bau-ink" :style="{ backgroundColor: primary(gi) }">
+                  <div class="grid aspect-video w-24 shrink-0 place-items-center overflow-hidden border-2 border-bau-ink" :style="{ backgroundColor: primary(gi) }">
                     <img v-if="g.image" :src="assetUrl(g.image)" class="h-full w-full object-cover" :alt="g.prizeName" />
                     <span v-else class="text-2xl">🎁</span>
                   </div>

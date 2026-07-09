@@ -136,7 +136,7 @@ const {
             <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div v-for="(z, i) in period.prizes" :key="i" class="overflow-hidden rounded-[24px] border-2 bg-retro-panel retro-shadow" :style="{ borderColor: accent(i) }">
                 <button v-if="z.image" type="button" @click="openZoom(assetUrl(z.image))" class="block w-full cursor-zoom-in border-b-2 border-retro-brown">
-                  <img :src="assetUrl(z.image)" class="h-44 w-full object-cover transition hover:brightness-105" :alt="z.name" />
+                  <img :src="assetUrl(z.image)" class="aspect-video w-full object-cover transition hover:brightness-105" :alt="z.name" />
                 </button>
                 <div v-else class="grid h-44 w-full place-items-center border-b-2 border-retro-brown text-6xl" :style="{ backgroundColor: accent(i) + '33' }">🎁</div>
                 <div class="p-4">

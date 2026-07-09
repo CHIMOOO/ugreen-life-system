@@ -142,9 +142,9 @@ function asciiBar(rate) {
               <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div v-for="(z, i) in period.prizes" :key="i" class="overflow-hidden border border-term-line bg-black/40">
                   <button v-if="z.image" type="button" @click="openZoom(assetUrl(z.image))" class="block w-full cursor-zoom-in border-b border-term-dim">
-                    <img :src="assetUrl(z.image)" class="h-40 w-full object-cover transition hover:brightness-110" :alt="z.name" />
+                    <img :src="assetUrl(z.image)" class="aspect-video w-full object-cover transition hover:brightness-110" :alt="z.name" />
                   </button>
-                  <div v-else class="grid h-40 w-full place-items-center border-b border-term-dim bg-term-bg text-6xl">🎁</div>
+                  <div v-else class="grid aspect-video w-full place-items-center border-b border-term-dim bg-term-bg text-6xl">🎁</div>
                   <div class="min-w-0 p-3">
                     <p class="truncate font-bold text-term-green">{{ z.name }}</p>
                     <p class="text-xs text-term-dim">x{{ z.qty }} 名额</p>
@@ -185,7 +185,7 @@ function asciiBar(rate) {
             <div class="mt-6 grid gap-4 sm:grid-cols-2">
               <div v-for="(g, gi) in prizeGroups" :key="gi" class="border border-term-line bg-black/40 p-4">
                 <div class="flex items-center gap-3">
-                  <div class="h-12 w-12 shrink-0 overflow-hidden border border-term-dim">
+                  <div class="aspect-video w-20 shrink-0 overflow-hidden border border-term-dim">
                     <img v-if="g.image" :src="assetUrl(g.image)" class="h-full w-full object-cover" :alt="g.prizeName" />
                     <div v-else class="grid h-full w-full place-items-center bg-term-bg text-xl">🎁</div>
                   </div>
