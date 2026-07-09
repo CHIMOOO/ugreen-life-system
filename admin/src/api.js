@@ -53,6 +53,12 @@ async function req(path, { method = 'GET', body, isForm = false } = {}) {
 
 export const admin = {
   login: (password) => req('/api/admin/login', { method: 'POST', body: { password: hashPassword(password) } }),
+  // 修改管理员密码（旧/新密码都在本地哈希后再发，明文不出网）。成功返回新凭据 token。
+  changePassword: (oldPassword, newPassword) =>
+    req('/api/admin/change-password', {
+      method: 'POST',
+      body: { oldPassword: hashPassword(oldPassword), newPassword: hashPassword(newPassword) },
+    }),
   // 系统配置
   getConfig: () => req('/api/admin/config'),
   saveConfig: (body) => req('/api/admin/config', { method: 'PUT', body }),

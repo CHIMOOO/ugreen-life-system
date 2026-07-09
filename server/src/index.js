@@ -25,10 +25,18 @@ const PORT = process.env.PORT || 41131;
 const HOST = process.env.HOST || '0.0.0.0';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 // 后台凭据 = SHA-256(固定盐 + 管理密码)。前端登录前在本地算好哈希再发送，明文密码绝不出网；
-// 该哈希即后续所有 /api/admin/* 请求头 x-admin-token，后端逐请求恒定时比对。改 ADMIN_PASSWORD 即换凭据。
+// 该哈希即后续所有 /api/admin/* 请求头 x-admin-token，后端逐请求恒定时比对。
 const ADMIN_SALT = 'aiot-life::';
 const adminHash = (pw) => crypto.createHash('sha256').update(ADMIN_SALT + String(pw ?? '')).digest('hex');
-const ADMIN_TOKEN = adminHash(ADMIN_PASSWORD);
+const HASH_RE = /^[0-9a-f]{64}$/;
+// 环境变量密码派生的哈希 —— 作为「从未在后台改过密码」时的默认凭据。
+const ENV_ADMIN_TOKEN = adminHash(ADMIN_PASSWORD);
+// 当前有效凭据：优先用后台「修改密码」存库的 admin_password_hash（见 PUT change-password），
+// 未设置则回退到环境变量密码派生的哈希。每次鉴权/登录都实时读取，改密后立即生效。
+function currentAdminToken() {
+  const stored = getSetting('admin_password_hash');
+  return HASH_RE.test(stored || '') ? stored : ENV_ADMIN_TOKEN;
+}
 
 // 恒定时间比较，避免按字符早退泄漏信息（防时序攻击）
 function safeEqual(a, b) {
@@ -178,7 +186,7 @@ function adminPeriodDetail(id) {
 }
 
 function adminAuth(req, res, next) {
-  if (safeEqual(req.get('x-admin-token'), ADMIN_TOKEN)) return next();
+  if (safeEqual(req.get('x-admin-token'), currentAdminToken())) return next();
   return res.status(401).json({ error: 'unauthorized' });
 }
 
@@ -312,11 +320,29 @@ app.post('/api/periods/:id/tea', (req, res) => {
 
 app.post('/api/admin/login', (req, res) => {
   const provided = (req.body?.password ?? '').toString();
-  // 新前端发来的是 SHA-256(盐+密码)；为兼容旧前端/脚本，也接受明文密码。两者都不命中才算失败。
-  if (safeEqual(provided, ADMIN_TOKEN) || safeEqual(provided, ADMIN_PASSWORD)) {
-    return res.json({ token: ADMIN_TOKEN });
+  const cur = currentAdminToken();
+  // 新前端发来的是 SHA-256(盐+密码)（provided === cur）；为兼容旧前端/脚本也接受明文密码（再哈希一次比对）。
+  if (safeEqual(provided, cur) || safeEqual(adminHash(provided), cur)) {
+    return res.json({ token: cur });
   }
   return res.status(401).json({ error: 'bad_password' });
+});
+
+// 修改管理员密码：验证旧密码 → 把新密码哈希存库（此后登录/鉴权都以库中哈希为准，环境变量密码不再生效）。
+// 前端传来的 oldPassword/newPassword 均为 SHA-256(盐+明文)，明文不出网；也兼容传明文（再哈希比对/入库）。
+app.post('/api/admin/change-password', adminAuth, (req, res) => {
+  const oldPw = (req.body?.oldPassword ?? '').toString();
+  const newPw = (req.body?.newPassword ?? '').toString();
+  const cur = currentAdminToken();
+  if (!(safeEqual(oldPw, cur) || safeEqual(adminHash(oldPw), cur))) {
+    return res.status(400).json({ error: 'bad_old_password' });
+  }
+  // 新密码优先按「已是哈希」处理（前端标准路径）；不是 64 位十六进制则当明文再哈希一次。
+  const newHash = HASH_RE.test(newPw) ? newPw : adminHash(newPw);
+  if (!newPw) return res.status(400).json({ error: 'bad_new_password' });
+  if (safeEqual(newHash, cur)) return res.status(400).json({ error: 'same_password' });
+  setSetting('admin_password_hash', newHash);
+  res.json({ ok: true, token: newHash }); // 返回新凭据，前端据此更新 x-admin-token 保持登录态
 });
 
 // ----- 系统配置 -----

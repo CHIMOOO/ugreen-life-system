@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref, onMounted } from 'vue';
-import { admin, STYLE_OPTIONS } from '../api.js';
+import { admin, STYLE_OPTIONS, setToken } from '../api.js';
 
 const f = reactive({
   departmentName: '', siteName: '', homeStyleMode: 'follow', homeFixedStyle: 'style1',
@@ -69,6 +69,36 @@ const MODES = [
   { v: 'random', label: '随机（每次进入随机一种风格）' },
   { v: 'fixed', label: '固定（始终用下面指定的风格）' },
 ];
+
+// ---- 修改管理员密码 ----
+const pw = reactive({ old: '', next: '', confirm: '' });
+const pwBusy = ref(false);
+const pwMsg = ref(''); // { type: 'ok'|'err', text }
+const pwMsgType = ref('ok');
+async function changePassword() {
+  pwMsg.value = '';
+  if (!pw.old) { pwMsgType.value = 'err'; pwMsg.value = '请输入当前密码'; return; }
+  if (pw.next.length < 4) { pwMsgType.value = 'err'; pwMsg.value = '新密码至少 4 位'; return; }
+  if (pw.next !== pw.confirm) { pwMsgType.value = 'err'; pwMsg.value = '两次输入的新密码不一致'; return; }
+  if (pw.next === pw.old) { pwMsgType.value = 'err'; pwMsg.value = '新密码不能与当前密码相同'; return; }
+  pwBusy.value = true;
+  const { ok, data } = await admin.changePassword(pw.old, pw.next);
+  pwBusy.value = false;
+  if (ok && data?.token) {
+    setToken(data.token); // 用新凭据更新本地 token，保持登录态（旧 token 已失效）
+    pw.old = pw.next = pw.confirm = '';
+    pwMsgType.value = 'ok';
+    pwMsg.value = '✓ 密码已修改，下次登录请用新密码';
+  } else {
+    pwMsgType.value = 'err';
+    const map = {
+      bad_old_password: '当前密码不正确',
+      same_password: '新密码不能与当前密码相同',
+      bad_new_password: '新密码无效',
+    };
+    pwMsg.value = map[data?.error] || '修改失败，请稍后重试';
+  }
+}
 
 const inputCls = 'mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100';
 </script>
@@ -226,6 +256,30 @@ const inputCls = 'mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 outli
           <input type="file" accept="application/json,.json" class="hidden" @change="importData" />
         </label>
         <span v-if="importMsg" class="text-sm font-medium text-slate-600">{{ importMsg }}</span>
+      </div>
+    </section>
+
+    <!-- ⑨ 修改管理员密码（独立操作：需验证当前密码，不随「保存设置」一起提交） -->
+    <section class="rounded-2xl border border-slate-200 bg-white p-6">
+      <h3 class="text-base font-bold text-slate-800">⑨ 修改管理员密码</h3>
+      <p class="mt-0.5 text-xs text-slate-500">修改后环境变量里的默认密码即失效，请牢记新密码。密码在本地哈希后再提交，明文不出网。</p>
+      <div class="mt-4 grid max-w-md gap-4">
+        <label class="block">
+          <span class="text-sm font-medium text-slate-600">当前密码</span>
+          <input v-model="pw.old" type="password" autocomplete="current-password" :class="inputCls" />
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium text-slate-600">新密码（至少 4 位）</span>
+          <input v-model="pw.next" type="password" autocomplete="new-password" :class="inputCls" />
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium text-slate-600">确认新密码</span>
+          <input v-model="pw.confirm" type="password" autocomplete="new-password" :class="inputCls" @keyup.enter="changePassword" />
+        </label>
+        <div class="flex items-center gap-3">
+          <button @click="changePassword" :disabled="pwBusy" class="rounded-xl bg-slate-800 px-5 py-2 font-semibold text-white transition hover:bg-slate-900 disabled:opacity-50">{{ pwBusy ? '修改中…' : '修改密码' }}</button>
+          <span v-if="pwMsg" class="text-sm font-medium" :class="pwMsgType === 'ok' ? 'text-emerald-600' : 'text-rose-600'">{{ pwMsg }}</span>
+        </div>
       </div>
     </section>
 

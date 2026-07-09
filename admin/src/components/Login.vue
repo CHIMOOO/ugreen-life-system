@@ -46,7 +46,7 @@ async function submit() {
           {{ loading ? '登录中…' : '登录' }}
         </button>
       </form>
-      <p class="mt-4 text-center text-xs text-slate-400">默认密码 admin123（可用环境变量 ADMIN_PASSWORD 修改）</p>
+      <p class="mt-4 text-center text-xs text-slate-400">默认密码 admin123，登录后可在「系统设置 → 修改管理员密码」中更改</p>
     </div>
   </div>
 </template>
