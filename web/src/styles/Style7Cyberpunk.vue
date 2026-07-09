@@ -20,6 +20,7 @@ import { stepExplain, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import { useStyleShell } from '../useStyleShell.js';
 import DiceButton from '../components/DiceButton.vue';
 import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
+import Markdown from '../components/Markdown.vue';
 import { openZoom } from '../useImageZoom.js';
 
 const props = defineProps({
@@ -77,7 +78,7 @@ const {
           <div class="mx-auto w-full max-w-2xl">
             <div class="cyber-clip border border-cyber-pink/60 bg-cyber-panel/80 p-8 cyber-glow-pink backdrop-blur sm:p-10">
               <h2 class="font-orbitron text-2xl font-black uppercase tracking-wide text-cyber-pink cyber-text-pink sm:text-3xl">▰ 参与抽奖</h2>
-              <p class="mt-2 font-mono text-sm text-cyber-fg/70">&gt; 填入姓名和幸运数字，开奖前没有人能看到你的信息。</p>
+              <p class="mt-2 font-mono text-sm text-cyber-fg/70">&gt; 实名或匿名皆可——匿名用工号当幸运数字。开奖前信息对所有人保密。</p>
               <div class="mt-8 space-y-6">
                 <div>
                   <label class="mb-2 block font-orbitron text-xs font-bold uppercase tracking-[0.3em] text-cyber-cyan">你的姓名 // NAME</label>
@@ -275,11 +276,11 @@ const {
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
           <div v-if="config.lotteryModuleEnabled !== false" class="cyber-clip border border-cyber-pink/50 bg-cyber-panel/70 p-6 backdrop-blur">
             <p class="font-orbitron text-sm font-black uppercase tracking-widest text-cyber-pink">▹ 抽奖规则</p>
-            <p class="mt-3 whitespace-pre-line font-mono text-sm leading-relaxed text-cyber-fg/80">{{ config.rulesLottery }}</p>
+            <Markdown :source="config.rulesLottery" class="mt-3 font-mono text-sm leading-relaxed text-cyber-fg/80" />
           </div>
           <div v-if="config.teaModuleEnabled !== false" class="cyber-clip border border-cyber-cyan/50 bg-cyber-panel/70 p-6 backdrop-blur">
             <p class="font-orbitron text-sm font-black uppercase tracking-widest text-cyber-cyan">▹ 下午茶评分规则</p>
-            <p class="mt-3 whitespace-pre-line font-mono text-sm leading-relaxed text-cyber-fg/80">{{ config.rulesTea }}</p>
+            <Markdown :source="config.rulesTea" class="mt-3 font-mono text-sm leading-relaxed text-cyber-fg/80" />
           </div>
         </div>
       </section>

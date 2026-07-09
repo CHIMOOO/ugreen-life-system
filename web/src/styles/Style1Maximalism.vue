@@ -19,6 +19,7 @@ import { assetUrl } from '../api.js';
 import { stepExplain, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import DiceButton from '../components/DiceButton.vue';
 import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
+import Markdown from '../components/Markdown.vue';
 import { openZoom } from '../useImageZoom.js';
 import { useStyleShell } from '../useStyleShell.js';
 
@@ -73,7 +74,7 @@ const {
           <div class="mx-auto w-full max-w-2xl">
             <div class="rounded-3xl border-4 border-max-tertiary bg-max-muted/70 p-8 shadow-multi backdrop-blur-sm sm:p-10">
               <h2 class="font-outfit text-3xl font-black uppercase text-max-accent max-text-shadow-sm">参与抽奖</h2>
-              <p class="mt-2 text-max-fg/70">填入姓名和幸运数字，开奖前没有人能看到你的信息。</p>
+              <p class="mt-2 text-max-fg/70">实名或匿名都行——匿名请用工号当幸运数字。开奖前你的信息对所有人保密。</p>
               <div class="mt-8 space-y-6">
                 <div>
                   <label class="mb-2 block font-black uppercase tracking-widest text-max-secondary">你的姓名</label>
@@ -265,11 +266,11 @@ const {
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
           <div v-if="config.lotteryModuleEnabled !== false" class="rounded-3xl border-4 border-dashed border-max-quinary bg-max-muted/50 p-6 backdrop-blur-sm">
             <p class="font-black uppercase text-max-accent">抽奖规则</p>
-            <p class="mt-2 whitespace-pre-line leading-relaxed text-white/80">{{ config.rulesLottery }}</p>
+            <Markdown :source="config.rulesLottery" class="mt-2 leading-relaxed text-white/80" />
           </div>
           <div v-if="config.teaModuleEnabled !== false" class="rounded-3xl border-4 border-dashed border-max-secondary bg-max-muted/50 p-6 backdrop-blur-sm">
             <p class="font-black uppercase text-max-tertiary">下午茶评分规则</p>
-            <p class="mt-2 whitespace-pre-line leading-relaxed text-white/80">{{ config.rulesTea }}</p>
+            <Markdown :source="config.rulesTea" class="mt-2 leading-relaxed text-white/80" />
           </div>
         </div>
       </section>

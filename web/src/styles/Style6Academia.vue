@@ -22,6 +22,7 @@ import { stepExplain, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import { useStyleShell } from '../useStyleShell.js';
 import DiceButton from '../components/DiceButton.vue';
 import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
+import Markdown from '../components/Markdown.vue';
 import { openZoom } from '../useImageZoom.js';
 
 const props = defineProps({
@@ -83,7 +84,7 @@ const {
                 <span class="mr-2 not-italic text-aca-gold">{{ roman(0) }}.</span>参与抽奖
               </h2>
               <div class="aca-rule mt-3"></div>
-              <p class="mt-4 italic text-aca-brown">填入姓名与幸运数字。开奖之前，无人能窥见你的卷宗。</p>
+              <p class="mt-4 italic text-aca-brown">实名或匿名皆可——匿名请以工号为幸运数字。开奖之前，无人能窥见你的卷宗。</p>
               <div class="mt-8 space-y-7">
                 <div>
                   <label class="mb-2 block font-playfair italic text-aca-brown">你的姓名</label>
@@ -317,12 +318,12 @@ const {
         <div class="aca-frame mt-6 bg-aca-panel p-7 sm:p-9">
           <template v-if="config.lotteryModuleEnabled !== false">
             <p class="font-playfair text-xl font-bold italic text-aca-burgundy">抽奖规则</p>
-            <p class="aca-dropcap mt-3 whitespace-pre-line leading-relaxed text-aca-ink">{{ config.rulesLottery }}</p>
+            <Markdown :source="config.rulesLottery" class="mt-3 leading-relaxed text-aca-ink" />
           </template>
           <div v-if="lotteryOn && teaOn" class="aca-rule my-7"></div>
           <template v-if="config.teaModuleEnabled !== false">
             <p class="font-playfair text-xl font-bold italic text-aca-forest">下午茶评分规则</p>
-            <p class="aca-dropcap mt-3 whitespace-pre-line leading-relaxed text-aca-ink">{{ config.rulesTea }}</p>
+            <Markdown :source="config.rulesTea" class="mt-3 leading-relaxed text-aca-ink" />
           </template>
         </div>
       </section>

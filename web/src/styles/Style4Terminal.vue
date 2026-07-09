@@ -20,6 +20,7 @@ import { stepExplain, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import { useStyleShell } from '../useStyleShell.js';
 import DiceButton from '../components/DiceButton.vue';
 import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
+import Markdown from '../components/Markdown.vue';
 import { openZoom } from '../useImageZoom.js';
 
 const props = defineProps({
@@ -82,7 +83,7 @@ function asciiBar(rate) {
           <div class="mx-auto w-full max-w-2xl">
             <div class="term-box bg-term-panel p-6 sm:p-8">
               <h2 class="text-xl font-bold uppercase text-term-green term-glow">[ 参与抽奖 ]</h2>
-              <p class="mt-2 text-sm text-term-dim">// 填入姓名与幸运数字，开奖前对其他人保密</p>
+              <p class="mt-2 text-sm text-term-dim">// 实名或匿名皆可——匿名用工号当幸运数字，开奖前对其他人保密</p>
               <div class="mt-6 space-y-5">
                 <div>
                   <label class="mb-1 block text-xs font-bold uppercase tracking-widest text-term-amber">姓名 / NAME</label>
@@ -301,11 +302,11 @@ function asciiBar(rate) {
           <div class="mt-5 grid gap-5 sm:grid-cols-2">
             <div v-if="config.lotteryModuleEnabled !== false" class="border border-term-line bg-black/40 p-4">
               <p class="text-sm font-bold uppercase text-term-amber"># 抽奖规则</p>
-              <p class="mt-2 whitespace-pre-line text-sm leading-relaxed text-term-fg/85">{{ config.rulesLottery }}</p>
+              <Markdown :source="config.rulesLottery" class="mt-2 text-sm leading-relaxed text-term-fg/85" />
             </div>
             <div v-if="config.teaModuleEnabled !== false" class="border border-term-line bg-black/40 p-4">
               <p class="text-sm font-bold uppercase text-term-amber"># 下午茶评分规则</p>
-              <p class="mt-2 whitespace-pre-line text-sm leading-relaxed text-term-fg/85">{{ config.rulesTea }}</p>
+              <Markdown :source="config.rulesTea" class="mt-2 text-sm leading-relaxed text-term-fg/85" />
             </div>
           </div>
         </div>

@@ -21,6 +21,7 @@ import { stepExplain, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import { useStyleShell } from '../useStyleShell.js';
 import DiceButton from '../components/DiceButton.vue';
 import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
+import Markdown from '../components/Markdown.vue';
 
 const props = defineProps({
   period: { type: Object, required: true },
@@ -83,7 +84,7 @@ const {
           <div class="mx-auto w-full max-w-2xl">
             <div class="rounded-[28px] bg-md-surface p-7 md-elev-1 transition-shadow duration-200 hover:md-elev-2 sm:p-9">
               <h2 class="text-2xl font-normal text-md-primary">参与抽奖</h2>
-              <p class="mt-1.5 text-sm text-md-secondary">填入姓名和幸运数字，开奖前没有人能看到你的信息。</p>
+              <p class="mt-1.5 text-sm text-md-secondary">实名或匿名都行——匿名请用工号当幸运数字。开奖前你的信息对所有人保密。</p>
               <div class="mt-7 space-y-6">
                 <div>
                   <label class="mb-1 block text-xs font-medium text-md-primary">你的姓名</label>
@@ -304,11 +305,11 @@ const {
         <div class="mt-6 grid gap-4 sm:grid-cols-2">
           <div v-if="config.lotteryModuleEnabled !== false" class="rounded-[24px] border border-md-outline/40 bg-md-surface p-6">
             <p class="flex items-center gap-2 font-medium text-md-primary"><span class="text-lg">🎰</span>抽奖规则</p>
-            <p class="mt-3 whitespace-pre-line text-sm leading-relaxed text-md-onSurface/80">{{ config.rulesLottery }}</p>
+            <Markdown :source="config.rulesLottery" class="mt-3 text-sm leading-relaxed text-md-onSurface/80" />
           </div>
           <div v-if="config.teaModuleEnabled !== false" class="rounded-[24px] border border-md-outline/40 bg-md-surface p-6">
             <p class="flex items-center gap-2 font-medium text-md-tertiary"><span class="text-lg">☕</span>下午茶评分规则</p>
-            <p class="mt-3 whitespace-pre-line text-sm leading-relaxed text-md-onSurface/80">{{ config.rulesTea }}</p>
+            <Markdown :source="config.rulesTea" class="mt-3 text-sm leading-relaxed text-md-onSurface/80" />
           </div>
         </div>
       </section>

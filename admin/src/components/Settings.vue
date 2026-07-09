@@ -235,13 +235,14 @@ const inputCls = 'mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 outli
         <h3 class="text-base font-bold text-slate-800">⑦ 规则文案</h3>
         <button @click="restoreRules" class="rounded-lg bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600 hover:bg-slate-200">↺ 恢复服务器默认</button>
       </div>
+      <p class="mt-0.5 text-xs text-slate-500">支持 <b class="text-slate-600">Markdown</b>：<code>## 标题</code>、<code>**加粗**</code>、<code>- 列表</code>、<code>1. 有序</code>，空行分段。前台会渲染成排版后的规则。</p>
       <label class="mt-4 block">
         <span class="text-sm font-medium text-slate-600">抽奖规则文案</span>
-        <textarea v-model="f.rulesLottery" rows="4" :class="inputCls"></textarea>
+        <textarea v-model="f.rulesLottery" rows="12" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 font-mono text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"></textarea>
       </label>
       <label class="mt-4 block">
         <span class="text-sm font-medium text-slate-600">下午茶评分规则文案</span>
-        <textarea v-model="f.rulesTea" rows="3" :class="inputCls"></textarea>
+        <textarea v-model="f.rulesTea" rows="5" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 font-mono text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"></textarea>
       </label>
     </section>
 

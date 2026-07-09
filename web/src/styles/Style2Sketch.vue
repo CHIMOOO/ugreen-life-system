@@ -20,6 +20,7 @@ import { stepExplain, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import { useStyleShell } from '../useStyleShell.js';
 import DiceButton from '../components/DiceButton.vue';
 import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
+import Markdown from '../components/Markdown.vue';
 import { openZoom } from '../useImageZoom.js';
 
 const props = defineProps({
@@ -85,7 +86,7 @@ const {
           <div class="mx-auto w-full max-w-2xl">
             <div class="border-[3px] border-sketch-ink bg-white p-8 shadow-sketch-lg sm:p-10 wobbly-md">
               <h2 class="font-kalam text-3xl font-bold text-sketch-red">参与抽奖</h2>
-              <p class="mt-2 font-patrick text-lg text-sketch-ink/70">填入姓名和幸运数字，开奖前没有人能看到你的信息。</p>
+              <p class="mt-2 font-patrick text-lg text-sketch-ink/70">实名或匿名都行——匿名请用工号当幸运数字。开奖前你的信息对所有人保密。</p>
               <div class="mt-8 space-y-6">
                 <div>
                   <label class="mb-2 block font-kalam text-lg font-bold text-sketch-ink">你的姓名</label>
@@ -295,11 +296,11 @@ const {
         <div class="mt-6 grid gap-6 sm:grid-cols-2">
           <div v-if="config.lotteryModuleEnabled !== false" class="border-[3px] border-dashed border-sketch-ink bg-white p-6 shadow-sketch-soft -rotate-1 wobbly-md">
             <p class="inline-block bg-sketch-postit px-3 py-1 font-kalam text-lg font-bold text-sketch-red wobbly-pill">抽奖规则</p>
-            <p class="mt-3 whitespace-pre-line font-patrick text-base leading-relaxed text-sketch-ink/80">{{ config.rulesLottery }}</p>
+            <Markdown :source="config.rulesLottery" class="mt-3 font-patrick text-base leading-relaxed text-sketch-ink/80" />
           </div>
           <div v-if="config.teaModuleEnabled !== false" class="border-[3px] border-dashed border-sketch-ink bg-white p-6 shadow-sketch-soft rotate-1 wobbly-md">
             <p class="inline-block bg-sketch-postit px-3 py-1 font-kalam text-lg font-bold text-sketch-blue wobbly-pill">下午茶评分规则</p>
-            <p class="mt-3 whitespace-pre-line font-patrick text-base leading-relaxed text-sketch-ink/80">{{ config.rulesTea }}</p>
+            <Markdown :source="config.rulesTea" class="mt-3 font-patrick text-base leading-relaxed text-sketch-ink/80" />
           </div>
         </div>
       </section>

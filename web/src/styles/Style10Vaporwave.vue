@@ -20,6 +20,7 @@ import { stepExplain, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import { useStyleShell } from '../useStyleShell.js';
 import DiceButton from '../components/DiceButton.vue';
 import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
+import Markdown from '../components/Markdown.vue';
 import { openZoom } from '../useImageZoom.js';
 
 const props = defineProps({
@@ -85,7 +86,7 @@ const {
           <div class="mx-auto w-full max-w-2xl">
             <div class="rounded-2xl border border-vapor-pink/50 bg-vapor-panel/70 p-8 vapor-glow backdrop-blur sm:p-10">
               <h2 class="font-orbitron text-2xl font-black uppercase tracking-wider vapor-chrome sm:text-3xl">参与抽奖 · JOIN</h2>
-              <p class="mt-2 text-vapor-fg/70">填入姓名和幸运数字，开奖前没有人能看到你的信息。</p>
+              <p class="mt-2 text-vapor-fg/70">实名或匿名都行——匿名请用工号当幸运数字。开奖前你的信息对所有人保密。</p>
               <div class="mt-8 space-y-6">
                 <div>
                   <label class="mb-2 block font-orbitron text-xs font-bold uppercase tracking-[0.2em] text-vapor-cyan">你的姓名 / NAME</label>
@@ -286,11 +287,11 @@ const {
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
           <div v-if="config.lotteryModuleEnabled !== false" class="rounded-2xl border border-dashed border-vapor-pink/60 bg-vapor-panel/50 p-6 backdrop-blur">
             <p class="font-orbitron font-black uppercase tracking-wider text-vapor-pink">抽奖规则</p>
-            <p class="mt-2 whitespace-pre-line leading-relaxed text-vapor-fg/80">{{ config.rulesLottery }}</p>
+            <Markdown :source="config.rulesLottery" class="mt-2 leading-relaxed text-vapor-fg/80" />
           </div>
           <div v-if="config.teaModuleEnabled !== false" class="rounded-2xl border border-dashed border-vapor-cyan/60 bg-vapor-panel/50 p-6 backdrop-blur">
             <p class="font-orbitron font-black uppercase tracking-wider text-vapor-cyan">下午茶评分规则</p>
-            <p class="mt-2 whitespace-pre-line leading-relaxed text-vapor-fg/80">{{ config.rulesTea }}</p>
+            <Markdown :source="config.rulesTea" class="mt-2 leading-relaxed text-vapor-fg/80" />
           </div>
         </div>
       </section>

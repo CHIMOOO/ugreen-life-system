@@ -1,5 +1,5 @@
 // 初始化演示数据：商品库 + 三期（三种 style）+ 当前期 + 评分 + 指纹样例。
-import { db, nowIso, setSetting, activatePeriod, setPeriodProducts, upsertUser, recordFingerprint } from './db.js';
+import { db, nowIso, setSetting, activatePeriod, setPeriodProducts, upsertUser, recordFingerprint, DEFAULT_SETTINGS } from './db.js';
 import { computeResult, normalizePrizes } from './lottery.js';
 
 db.exec('DELETE FROM entries; DELETE FROM tea_ratings; DELETE FROM period_products; DELETE FROM tea_products; DELETE FROM periods; DELETE FROM bills; DELETE FROM fingerprints; DELETE FROM users;');
@@ -10,6 +10,9 @@ setSetting('department_name', 'AIoT客户端组');
 setSetting('site_name', 'AIoT客户端组生活系统');
 setSetting('home_style_mode', 'follow');
 setSetting('home_fixed_style', 'style1');
+// 规则文案：跟随服务器默认（Markdown），使 reseed 后套用最新版规则
+setSetting('rules_lottery', DEFAULT_SETTINGS.rules_lottery);
+setSetting('rules_tea', DEFAULT_SETTINGS.rules_tea);
 
 // ---- 下午茶商品库 ----
 const insProduct = db.prepare(

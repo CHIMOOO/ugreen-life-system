@@ -20,6 +20,7 @@ import { stepExplain, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import { useStyleShell } from '../useStyleShell.js';
 import DiceButton from '../components/DiceButton.vue';
 import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
+import Markdown from '../components/Markdown.vue';
 import { openZoom } from '../useImageZoom.js';
 
 const props = defineProps({
@@ -86,7 +87,7 @@ const {
             <div class="rounded-[24px] border-2 border-retro-brown bg-retro-panel p-8 retro-shadow sm:p-10">
               <h2 class="font-righteous text-3xl uppercase tracking-wide text-retro-orange">参与抽奖</h2>
               <div class="mt-2 h-1.5 w-24 rounded-full retro-stripes"></div>
-              <p class="mt-4 font-poppins text-retro-ink/75">填入姓名和幸运数字，开奖前没有人能看到你的信息。</p>
+              <p class="mt-4 font-poppins text-retro-ink/75">实名或匿名都行——匿名请用工号当幸运数字。开奖前你的信息对所有人保密。</p>
               <div class="mt-8 space-y-6">
                 <div>
                   <label class="mb-2 block font-righteous uppercase tracking-[0.2em] text-retro-teal">你的姓名</label>
@@ -295,11 +296,11 @@ const {
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
           <div v-if="config.lotteryModuleEnabled !== false" class="rounded-[24px] border-2 border-dashed border-retro-orange bg-retro-panel p-6 retro-shadow">
             <p class="font-righteous text-lg uppercase tracking-wide text-retro-orange">◆ 抽奖规则</p>
-            <p class="mt-2 whitespace-pre-line font-poppins leading-relaxed text-retro-ink/80">{{ config.rulesLottery }}</p>
+            <Markdown :source="config.rulesLottery" class="mt-2 font-poppins leading-relaxed text-retro-ink/80" />
           </div>
           <div v-if="config.teaModuleEnabled !== false" class="rounded-[24px] border-2 border-dashed border-retro-teal bg-retro-panel p-6 retro-shadow">
             <p class="font-righteous text-lg uppercase tracking-wide text-retro-teal">● 下午茶评分规则</p>
-            <p class="mt-2 whitespace-pre-line font-poppins leading-relaxed text-retro-ink/80">{{ config.rulesTea }}</p>
+            <Markdown :source="config.rulesTea" class="mt-2 font-poppins leading-relaxed text-retro-ink/80" />
           </div>
         </div>
       </section>

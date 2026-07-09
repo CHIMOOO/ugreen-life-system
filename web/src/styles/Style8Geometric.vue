@@ -20,6 +20,7 @@ import { stepExplain, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import { useStyleShell } from '../useStyleShell.js';
 import DiceButton from '../components/DiceButton.vue';
 import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
+import Markdown from '../components/Markdown.vue';
 import { openZoom } from '../useImageZoom.js';
 
 const props = defineProps({
@@ -95,7 +96,7 @@ const {
             <div class="relative rounded-[28px] border-[3px] border-geo-ink bg-white p-8 geo-shadow transition hover:-translate-y-1 sm:p-10">
               <span class="absolute -left-3 -top-3 h-9 w-9 rounded-full border-[3px] border-geo-ink bg-geo-coral"></span>
               <h2 class="font-fredoka text-3xl font-bold text-geo-ink">参与抽奖</h2>
-              <p class="mt-2 text-geo-ink/60">填入姓名和幸运数字，开奖前没有人能看到你的信息。</p>
+              <p class="mt-2 text-geo-ink/60">实名或匿名都行——匿名请用工号当幸运数字。开奖前你的信息对所有人保密。</p>
               <div class="mt-8 space-y-6">
                 <div>
                   <label class="mb-2 block font-fredoka text-sm font-bold uppercase tracking-wide text-geo-teal">你的姓名</label>
@@ -317,12 +318,12 @@ const {
           <div v-if="config.lotteryModuleEnabled !== false" class="relative rounded-[28px] border-[3px] border-geo-ink bg-white p-6 geo-shadow">
             <span class="absolute -left-3 -top-3 grid h-10 w-10 place-items-center rounded-full border-[3px] border-geo-ink bg-geo-coral text-lg">🎲</span>
             <p class="font-fredoka text-lg font-bold text-geo-coral">抽奖规则</p>
-            <p class="mt-2 whitespace-pre-line leading-relaxed text-geo-ink/70">{{ config.rulesLottery }}</p>
+            <Markdown :source="config.rulesLottery" class="mt-2 leading-relaxed text-geo-ink/70" />
           </div>
           <div v-if="config.teaModuleEnabled !== false" class="relative rounded-[28px] border-[3px] border-geo-ink bg-white p-6 geo-shadow">
             <span class="absolute -left-3 -top-3 grid h-10 w-10 place-items-center rounded-full border-[3px] border-geo-ink bg-geo-teal text-lg">🍵</span>
             <p class="font-fredoka text-lg font-bold text-geo-teal">下午茶评分规则</p>
-            <p class="mt-2 whitespace-pre-line leading-relaxed text-geo-ink/70">{{ config.rulesTea }}</p>
+            <Markdown :source="config.rulesTea" class="mt-2 leading-relaxed text-geo-ink/70" />
           </div>
         </div>
       </section>

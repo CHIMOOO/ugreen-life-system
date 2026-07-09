@@ -21,6 +21,7 @@ import { stepExplain, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import { useStyleShell } from '../useStyleShell.js';
 import DiceButton from '../components/DiceButton.vue';
 import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
+import Markdown from '../components/Markdown.vue';
 import { openZoom } from '../useImageZoom.js';
 
 const props = defineProps({
@@ -79,7 +80,7 @@ const {
           <div class="mx-auto w-full max-w-2xl">
             <div class="neu-raised rounded-[28px] p-8 sm:p-10">
               <h2 class="text-2xl font-semibold text-neu-fg">参与抽奖</h2>
-              <p class="mt-2 text-sm text-neu-muted">填入姓名和幸运数字，开奖前没有人能看到你的信息。</p>
+              <p class="mt-2 text-sm text-neu-muted">实名或匿名都行——匿名请用工号当幸运数字。开奖前你的信息对所有人保密。</p>
               <div class="mt-8 space-y-6">
                 <div>
                   <label class="mb-3 block text-xs font-semibold uppercase tracking-widest text-neu-muted">你的姓名</label>
@@ -278,11 +279,11 @@ const {
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
           <div v-if="config.lotteryModuleEnabled !== false" class="neu-flat rounded-[28px] p-6">
             <p class="font-semibold text-neu-accent">抽奖规则</p>
-            <p class="mt-3 whitespace-pre-line text-sm leading-relaxed text-neu-fg/80">{{ config.rulesLottery }}</p>
+            <Markdown :source="config.rulesLottery" class="mt-3 text-sm leading-relaxed text-neu-fg/80" />
           </div>
           <div v-if="config.teaModuleEnabled !== false" class="neu-flat rounded-[28px] p-6">
             <p class="font-semibold text-neu-accent">下午茶评分规则</p>
-            <p class="mt-3 whitespace-pre-line text-sm leading-relaxed text-neu-fg/80">{{ config.rulesTea }}</p>
+            <Markdown :source="config.rulesTea" class="mt-3 text-sm leading-relaxed text-neu-fg/80" />
           </div>
         </div>
       </section>

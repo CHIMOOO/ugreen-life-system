@@ -2,6 +2,7 @@
 // 没有进行中的活动时的兜底页（粘土风）：历史期数 + 抽奖/评分/规则模块。
 import ClayBlobs from './ClayBlobs.vue';
 import { RouterLink } from 'vue-router';
+import Markdown from './Markdown.vue';
 import { STYLE_LABELS } from '../styles/registry.js';
 
 defineProps({
@@ -54,7 +55,7 @@ defineProps({
         <div v-if="config.lotteryModuleEnabled !== false" class="rounded-[32px] bg-white/70 p-7 shadow-clay-card backdrop-blur-xl">
           <div class="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-purple-400 to-purple-600 text-2xl shadow-clay-button">🎲</div>
           <h2 class="mt-4 font-nunito text-2xl font-extrabold">抽奖模块</h2>
-          <p class="mt-2 leading-relaxed text-clay-muted">填写姓名和 1-9999 的幸运数字参与，开奖前互相保密，按取余算法公开开奖。</p>
+          <p class="mt-2 leading-relaxed text-clay-muted">实名填姓名、或匿名用工号当幸运数字参与；开奖前互相保密，按取余算法公开开奖。</p>
         </div>
         <div v-if="config.teaModuleEnabled !== false" class="rounded-[32px] bg-white/70 p-7 shadow-clay-card backdrop-blur-xl">
           <div class="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-pink-400 to-pink-600 text-2xl shadow-clay-button">🍰</div>
@@ -69,11 +70,11 @@ defineProps({
         <div class="mt-5 space-y-4">
           <div v-if="config.lotteryModuleEnabled !== false" class="rounded-[24px] bg-clay-card p-6 shadow-clay-pressed">
             <p class="font-nunito font-bold">抽奖规则</p>
-            <p class="mt-2 whitespace-pre-line leading-relaxed text-clay-muted">{{ config.rulesLottery }}</p>
+            <Markdown :source="config.rulesLottery" class="mt-2 leading-relaxed text-clay-muted" />
           </div>
           <div v-if="config.teaModuleEnabled !== false" class="rounded-[24px] bg-clay-card p-6 shadow-clay-pressed">
             <p class="font-nunito font-bold">下午茶评分规则</p>
-            <p class="mt-2 whitespace-pre-line leading-relaxed text-clay-muted">{{ config.rulesTea }}</p>
+            <Markdown :source="config.rulesTea" class="mt-2 leading-relaxed text-clay-muted" />
           </div>
         </div>
       </div>

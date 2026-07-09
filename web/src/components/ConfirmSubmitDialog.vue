@@ -14,6 +14,7 @@
  * Emits: confirm / cancel
  */
 import { ref, watch, computed, nextTick, onBeforeUnmount } from 'vue';
+import Markdown from './Markdown.vue';
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -113,7 +114,7 @@ onBeforeUnmount(() => {
               <div class="mt-4">
                 <p class="mb-1.5 text-xs font-bold uppercase tracking-wider" :class="T.rulesLabel">抽奖规则</p>
                 <div class="max-h-44 overflow-y-auto px-4 py-3 text-sm leading-relaxed" :class="T.rulesBox" :style="{ borderColor: accent }">
-                  <p class="whitespace-pre-line">{{ rules || '请遵守抽奖规则，一个名字只能提交一次，重复提交将导致抽奖无效。' }}</p>
+                  <Markdown :source="rules || '请遵守抽奖规则：一个名字只能提交一次，重复提交将导致抽奖无效。'" />
                 </div>
               </div>
 

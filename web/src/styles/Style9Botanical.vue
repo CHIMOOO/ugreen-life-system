@@ -20,6 +20,7 @@ import { stepExplain, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import { useStyleShell } from '../useStyleShell.js';
 import DiceButton from '../components/DiceButton.vue';
 import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
+import Markdown from '../components/Markdown.vue';
 import { openZoom } from '../useImageZoom.js';
 
 const props = defineProps({
@@ -94,7 +95,7 @@ const {
               <h2 class="flex items-center gap-2 font-cormorant text-3xl font-semibold text-bot-leaf">
                 <span class="text-2xl">🌱</span> 参与抽奖
               </h2>
-              <p class="mt-2 font-cormorant text-lg italic text-bot-ink/70">填入姓名和幸运数字，开奖前没有人能看到你的信息。</p>
+              <p class="mt-2 font-cormorant text-lg italic text-bot-ink/70">实名或匿名皆可——匿名请以工号为幸运数字。开奖前你的信息静静保密。</p>
               <div class="mt-8 space-y-6">
                 <div>
                   <label class="mb-2 block font-cormorant text-lg font-medium text-bot-leaf">你的姓名</label>
@@ -304,11 +305,11 @@ const {
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
           <div v-if="config.lotteryModuleEnabled !== false" class="rounded-[24px] border border-bot-sage/50 bg-bot-cream/60 p-6 bot-card">
             <p class="flex items-center gap-2 font-cormorant text-xl font-semibold text-bot-leaf"><span>🌱</span> 抽奖规则</p>
-            <p class="mt-3 whitespace-pre-line font-cormorant text-lg italic leading-relaxed text-bot-ink/80">{{ config.rulesLottery }}</p>
+            <Markdown :source="config.rulesLottery" class="mt-3 font-cormorant text-lg italic leading-relaxed text-bot-ink/80" />
           </div>
           <div v-if="config.teaModuleEnabled !== false" class="rounded-[24px] border border-bot-sage/50 bg-bot-cream/60 p-6 bot-card">
             <p class="flex items-center gap-2 font-cormorant text-xl font-semibold text-bot-leaf"><span>🍃</span> 下午茶评分规则</p>
-            <p class="mt-3 whitespace-pre-line font-cormorant text-lg italic leading-relaxed text-bot-ink/80">{{ config.rulesTea }}</p>
+            <Markdown :source="config.rulesTea" class="mt-3 font-cormorant text-lg italic leading-relaxed text-bot-ink/80" />
           </div>
         </div>
       </section>
