@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { admin, WEB_BASE } from '../api.js';
 import PeriodForm from './PeriodForm.vue';
 import ResultPreview from './ResultPreview.vue';
@@ -7,6 +7,7 @@ import Products from './Products.vue';
 import Settings from './Settings.vue';
 import Bills from './Bills.vue';
 import UserManagement from './UserManagement.vue';
+import Reviews from './Reviews.vue';
 
 const emit = defineEmits(['logout']);
 
@@ -16,7 +17,18 @@ const STYLE_LABEL = {
   style11: '新拟态', style12: '复古',
 };
 
-const tab = ref('periods'); // periods | products | settings
+const tab = ref('periods'); // periods | products | bills | users | reviews | settings
+// 数据型标签靠 :key 重挂载来「刷新」（它们无未保存状态，重挂载即重新拉取）；
+// periods 标签有本地选中态，单独重新拉列表 + 详情，不重挂载。
+const remountKey = reactive({ products: 0, bills: 0, users: 0, reviews: 0 });
+function refreshTab() {
+  if (tab.value === 'periods') {
+    loadList();
+    if (selectedId.value != null && selectedId.value !== 'new') loadDetail(selectedId.value);
+  } else if (tab.value in remountKey) {
+    remountKey[tab.value]++;
+  }
+}
 
 const periods = ref([]);
 const selectedId = ref(null); // null | 'new' | number
@@ -119,18 +131,20 @@ onMounted(loadList);
         <h1 class="text-lg font-bold text-slate-800">生活系统 · 管理后台</h1>
       </div>
       <div class="flex items-center gap-1">
-        <button v-for="t in [['periods','期数管理'],['products','商品库'],['bills','账单'],['users','用户管理'],['settings','系统设置']]" :key="t[0]"
+        <button v-for="t in [['periods','期数管理'],['products','商品库'],['bills','账单'],['users','用户管理'],['reviews','评价管理'],['settings','系统设置']]" :key="t[0]"
           @click="tab = t[0]"
           class="rounded-lg px-4 py-1.5 text-sm font-medium transition"
           :class="tab === t[0] ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-100'">{{ t[1] }}</button>
+        <button v-if="tab !== 'settings'" @click="refreshTab" title="刷新当前页数据" class="ml-2 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-100">🔄 刷新</button>
         <button @click="emit('logout')" class="ml-2 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-100">退出</button>
       </div>
     </header>
 
-    <!-- 商品库 / 系统设置 -->
-    <div v-if="tab === 'products'" class="mx-auto max-w-7xl p-6"><Products /></div>
-    <div v-else-if="tab === 'bills'" class="mx-auto max-w-7xl p-6"><Bills /></div>
-    <div v-else-if="tab === 'users'" class="mx-auto max-w-7xl p-6"><UserManagement /></div>
+    <!-- 商品库 / 账单 / 用户 / 评价 / 系统设置（数据型标签用 :key 支持「刷新」重挂载） -->
+    <div v-if="tab === 'products'" class="mx-auto max-w-7xl p-6"><Products :key="remountKey.products" /></div>
+    <div v-else-if="tab === 'bills'" class="mx-auto max-w-7xl p-6"><Bills :key="remountKey.bills" /></div>
+    <div v-else-if="tab === 'users'" class="mx-auto max-w-7xl p-6"><UserManagement :key="remountKey.users" /></div>
+    <div v-else-if="tab === 'reviews'" class="mx-auto max-w-7xl p-6"><Reviews :key="remountKey.reviews" /></div>
     <div v-else-if="tab === 'settings'" class="mx-auto max-w-3xl p-6"><Settings /></div>
 
     <!-- 期数管理 -->
@@ -146,10 +160,11 @@ onMounted(loadList);
             <span v-else class="rounded px-2 py-0.5 text-xs font-semibold" :class="p.status === 'drawn' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'">{{ p.status === 'drawn' ? '已开奖' : '进行中' }}</span>
           </div>
           <h3 class="mt-2 truncate font-semibold text-slate-800">{{ p.title }}</h3>
-          <div class="mt-1 flex gap-3 text-xs text-slate-400">
+          <div class="mt-1 flex flex-wrap gap-3 text-xs text-slate-400">
             <span>👥 {{ p.participantCount }}</span>
             <span v-if="p.lotteryEnabled">🎁 抽奖</span>
             <span v-if="p.teaEnabled">🍰 下午茶</span>
+            <span v-if="p.reviewEnabled">📝 评价</span>
           </div>
         </div>
         <p v-if="periods.length === 0" class="px-2 text-sm text-slate-400">还没有期数，点上方新建。</p>

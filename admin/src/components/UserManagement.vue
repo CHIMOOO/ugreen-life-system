@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { admin } from '../api.js';
+import { fpView, kindMeta, isLegacy, fmtTime } from '../fpView.js';
 
 const items = ref([]);
 const total = ref(0);
@@ -50,53 +51,7 @@ function close() {
   selected.value = null;
 }
 
-const fmtTime = (t) => (t || '').replace('T', ' ').slice(0, 19);
-const kindMeta = (k) =>
-  k === 'cancel'
-    ? { label: '撤销', cls: 'bg-rose-100 text-rose-700' }
-    : k === 'rating'
-    ? { label: '评分', cls: 'bg-amber-100 text-amber-700' }
-    : { label: '抽奖', cls: 'bg-indigo-100 text-indigo-700' };
-
-// 旧版本记录（指纹增强前）：details 为空，除了姓名/时间没有可展示的信号。
-function isLegacy(f) {
-  const d = f.details;
-  if (!d || typeof d !== 'object') return true;
-  return !d.client && !d.server && !d.visitorId;
-}
-
-// 从一条指纹记录里抽取便于阅读的关键信号
-function fpView(f) {
-  const d = f.details || {};
-  const c = d.client || {};
-  const s = d.server || {};
-  const ch = c.clientHints || {};
-  const conf = c.confidence || {};
-  const browser = (Array.isArray(ch.fullVersionList) && ch.fullVersionList[0])
-    || (Array.isArray(ch.brands) && ch.brands[ch.brands.length - 1])
-    || '';
-  const os = ch.platform ? `${ch.platform} ${ch.platformVersion || ''}`.trim() : (c.osCpu || c.platform || '');
-  return {
-    // visitorId 优先取 client 里 FPJS 的稳定 id，退到顶层 id（recordFingerprint 会回填）
-    visitorId: c.visitorId || d.id || '',
-    confidence: typeof conf.score === 'number' ? Math.round(conf.score * 100) : null,
-    fpVersion: c.fpVersion || '',
-    ip: f.ip || s.ip || '—',
-    ua: f.ua || s.ua || '',
-    browser,
-    os,
-    arch: ch.architecture ? `${ch.architecture}${ch.bitness ? '/' + ch.bitness : ''}` : '',
-    screen: c.screen ? `${c.screen}${c.devicePixelRatio ? ' @' + c.devicePixelRatio + 'x' : ''}` : '',
-    timezone: c.timezone || '',
-    lang: c.languages || s.acceptLanguage || '',
-    gpu: (c.webgl && c.webgl.renderer) || '',
-    fonts: Array.isArray(c.fonts) ? c.fonts.length : 0,
-    canvas: c.canvasHash || '',
-    audio: c.audioHash || '',
-    cores: c.hardwareConcurrency,
-    mem: c.deviceMemory,
-  };
-}
+const KIND_LABEL = { review: '本期评价', suggestion: '下期建议' };
 </script>
 
 <template>
@@ -131,7 +86,7 @@ function fpView(f) {
             <p class="truncate text-xs text-slate-400">最近活跃 {{ fmtTime(u.updatedAt) }}</p>
           </div>
         </div>
-        <div class="mt-4 grid grid-cols-3 gap-2 text-center">
+        <div class="mt-4 grid grid-cols-4 gap-2 text-center">
           <div class="rounded-xl bg-indigo-50 py-2">
             <p class="text-base font-bold text-indigo-600">{{ u.lotteryCount }}</p>
             <p class="text-[11px] text-slate-400">🎲 抽奖</p>
@@ -139,6 +94,10 @@ function fpView(f) {
           <div class="rounded-xl bg-amber-50 py-2">
             <p class="text-base font-bold text-amber-600">{{ u.ratingCount }}</p>
             <p class="text-[11px] text-slate-400">🍰 评分</p>
+          </div>
+          <div class="rounded-xl bg-sky-50 py-2">
+            <p class="text-base font-bold text-sky-600">{{ u.reviewCount ?? 0 }}</p>
+            <p class="text-[11px] text-slate-400">💬 评价</p>
           </div>
           <div class="rounded-xl bg-emerald-50 py-2">
             <p class="text-base font-bold text-emerald-600">{{ u.fpCount }}</p>
@@ -195,6 +154,22 @@ function fpView(f) {
                 </span>
               </div>
               <p v-else class="mt-2 text-sm text-slate-400">暂无评分记录（评分时需带姓名才会归入用户）。</p>
+            </section>
+
+            <!-- 评价 / 建议模块 -->
+            <section class="rounded-2xl border border-slate-200 bg-white p-5">
+              <h3 class="font-bold text-slate-800">💬 评价 / 建议 · 本人具名留言</h3>
+              <div v-if="selected.reviews?.length" class="mt-3 space-y-2">
+                <div v-for="(r, i) in selected.reviews" :key="i" class="rounded-xl bg-slate-50 p-3 text-sm">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="rounded-full px-2 py-0.5 text-xs font-bold" :class="r.kind === 'suggestion' ? 'bg-amber-100 text-amber-700' : 'bg-sky-100 text-sky-700'">{{ KIND_LABEL[r.kind] || '留言' }}</span>
+                    <span class="truncate text-xs text-slate-500">{{ r.periodTitle || ('期 #' + r.periodId) }}</span>
+                    <span class="ml-auto shrink-0 text-xs text-slate-400">{{ fmtTime(r.createdAt) }}</span>
+                  </div>
+                  <p class="mt-1.5 whitespace-pre-line break-words text-slate-700">{{ r.content }}</p>
+                </div>
+              </div>
+              <p v-else class="mt-2 text-sm text-slate-400">暂无具名留言（匿名留言不归入用户）。</p>
             </section>
 
             <!-- 指纹模块 -->

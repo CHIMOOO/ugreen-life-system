@@ -94,6 +94,39 @@ export function teaExtraText(prod) {
   return parts.join(' · ');
 }
 
+// ---------- 评价 / 建议 ----------
+// 两种留言类型：对本期的评价 + 对下一期的建议。前台切换、后台/展示据此打标签。
+export const REVIEW_KINDS = [
+  { key: 'review', label: '评价本期', emoji: '💬' },
+  { key: 'suggestion', label: '建议下期', emoji: '💡' },
+];
+export const REVIEW_KIND_LABEL = { review: '本期评价', suggestion: '下期建议' };
+
+const REVIEW_ERRORS = {
+  content_required: '请填写评价内容',
+  content_too_long: '内容过长（最多 1000 字）',
+  review_disabled: '本期未开启评价',
+  not_found: '找不到这一期',
+};
+export function reviewErrorText(code) {
+  return REVIEW_ERRORS[code] || '提交失败，请稍后再试';
+}
+
+// 相对时间：刚刚 / N 分钟前 / N 小时前 / N 天前 / 具体日期（评价墙展示用）
+export function relativeTime(iso) {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return '';
+  const diff = Date.now() - t;
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return '刚刚';
+  if (min < 60) return `${min} 分钟前`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} 小时前`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return `${day} 天前`;
+  return new Date(t).toLocaleDateString('zh-CN');
+}
+
 // ---------- 下午茶评分 ----------
 export const TEA_LEVELS = [
   { key: 'bad', label: '不推荐', emoji: '😕' },

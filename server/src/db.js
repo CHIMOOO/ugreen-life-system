@@ -81,6 +81,16 @@ db.exec(`
     UNIQUE (period_id, product_id, client_id)
   );
 
+  -- 评价 / 建议：对本期的评价 + 对下一期的建议。内容必填、姓名可选（留空=匿名）。允许同一人多次留言。
+  CREATE TABLE IF NOT EXISTS reviews (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    period_id  INTEGER NOT NULL,
+    kind       TEXT    NOT NULL DEFAULT 'review',  -- review 本期评价 | suggestion 下期建议
+    name       TEXT,                                -- 可选（留空即匿名展示）
+    content    TEXT    NOT NULL,
+    created_at TEXT    NOT NULL
+  );
+
   -- 用户库（按姓名聚合，无需账号密码，仅供参考统计）
   CREATE TABLE IF NOT EXISTS users (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -89,7 +99,7 @@ db.exec(`
     updated_at TEXT    NOT NULL
   );
 
-  -- 指纹采集：每次提交/评分/撤销都记一条，便于追溯
+  -- 指纹采集：每次提交/评分/撤销/评价都记一条，便于追溯
   CREATE TABLE IF NOT EXISTS fingerprints (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     name       TEXT,
@@ -97,8 +107,9 @@ db.exec(`
     ip         TEXT,   -- 服务端采集的来源 IP
     ua         TEXT,   -- 服务端采集的 User-Agent
     details    TEXT,   -- 全量信号 JSON（前端采集 + 服务端补充）
-    kind       TEXT,   -- lottery | rating | cancel
+    kind       TEXT,   -- lottery | rating | cancel | review
     period_id  INTEGER,
+    review_id  INTEGER, -- kind=review 时关联的评价 id：供「评价管理」反查指纹（匿名留言 name=null 也能追溯到设备）
     created_at TEXT    NOT NULL
   );
 
@@ -118,6 +129,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_pp_period ON period_products(period_id);
   CREATE INDEX IF NOT EXISTS idx_ratings_pp ON tea_ratings(period_id, product_id);
   CREATE INDEX IF NOT EXISTS idx_bills_period ON bills(period_id);
+  CREATE INDEX IF NOT EXISTS idx_reviews_period ON reviews(period_id);
 `);
 
 // 兼容旧库：缺失的列补上（幂等）
@@ -131,12 +143,14 @@ addColumnIfMissing('tea_products', 'qty', 'INTEGER');
 addColumnIfMissing('period_products', 'amount', 'TEXT');
 addColumnIfMissing('periods', 'bill_show', "TEXT DEFAULT 'inherit'"); // inherit|on|off：本期账单是否展示
 addColumnIfMissing('periods', 'invalid_names', "TEXT DEFAULT '[]'"); // 被判无效的参与者（开奖后顺延用）
+addColumnIfMissing('periods', 'review_enabled', 'INTEGER NOT NULL DEFAULT 0'); // 期数级：是否开启「评价/建议」模块
 addColumnIfMissing('tea_ratings', 'name', 'TEXT'); // 评分者姓名（来自浏览器存储，便于归入用户库）
 addColumnIfMissing('fingerprints', 'ip', 'TEXT'); // 指纹：服务端来源 IP
 addColumnIfMissing('fingerprints', 'ua', 'TEXT'); // 指纹：服务端 User-Agent
 addColumnIfMissing('fingerprints', 'details', 'TEXT'); // 指纹：全量信号 JSON
+addColumnIfMissing('fingerprints', 'review_id', 'INTEGER'); // 指纹：关联的评价 id（评价管理反查指纹）
 
-db.exec('CREATE INDEX IF NOT EXISTS idx_fp_name ON fingerprints(name); CREATE INDEX IF NOT EXISTS idx_ratings_name ON tea_ratings(name);');
+db.exec('CREATE INDEX IF NOT EXISTS idx_fp_name ON fingerprints(name); CREATE INDEX IF NOT EXISTS idx_ratings_name ON tea_ratings(name); CREATE INDEX IF NOT EXISTS idx_fp_review ON fingerprints(review_id);');
 
 export function nowIso() {
   return new Date().toISOString();
@@ -162,6 +176,7 @@ export const DEFAULT_SETTINGS = {
   tea_show_qty: '0', // 下午茶商品「数量」是否对用户展示
   lottery_module_enabled: '1', // 系统级：是否开放抽奖模块（关闭后用户彻底看不到抽奖及其规则）
   tea_module_enabled: '1', // 系统级：是否开放下午茶评分模块
+  review_module_enabled: '1', // 系统级：是否开放「评价/建议」模块（关闭后所有期都看不到评价墙）
   name_placeholder: '陈老板', // 趣味设置：抽奖姓名输入框的占位提示
   bill_module_enabled: '1', // 系统级：首页是否显示「总账单」模块
   period_bill_show: '1', // 系统级：默认是否在下午茶里显示「本期账单」（期数可覆盖）
@@ -235,6 +250,7 @@ export function getConfig() {
     randomThemeCurrent: effectiveRandomStyle(), // TTL 内锁定的随机主题；未启用则为 ''
     lotteryModuleEnabled: getSetting('lottery_module_enabled') !== '0',
     teaModuleEnabled: getSetting('tea_module_enabled') !== '0',
+    reviewModuleEnabled: getSetting('review_module_enabled') !== '0',
     namePlaceholder: getSetting('name_placeholder'),
     teaShowChannel: getSetting('tea_show_channel') === '1',
     teaShowPrice: getSetting('tea_show_price') === '1',
@@ -344,6 +360,71 @@ export function productInPeriod(periodId, productId) {
     .get(periodId, productId);
 }
 
+// ---------- 评价 / 建议 ----------
+
+const _reviewRow = (r) => ({ id: r.id, kind: r.kind, name: r.name || '', content: r.content, createdAt: r.created_at });
+
+// 某一期的评价列表（新→旧），供前台评价墙与后台展示
+export function listReviews(periodId) {
+  return db
+    .prepare('SELECT id, kind, name, content, created_at FROM reviews WHERE period_id = ? ORDER BY id DESC')
+    .all(periodId)
+    .map(_reviewRow);
+}
+export function reviewCount(periodId) {
+  return db.prepare('SELECT COUNT(*) AS c FROM reviews WHERE period_id = ?').get(periodId).c;
+}
+export function addReview({ periodId, kind, name, content }) {
+  const info = db
+    .prepare('INSERT INTO reviews (period_id, kind, name, content, created_at) VALUES (?, ?, ?, ?, ?)')
+    .run(periodId, kind === 'suggestion' ? 'suggestion' : 'review', name || null, content, nowIso());
+  return _reviewRow(db.prepare('SELECT id, kind, name, content, created_at FROM reviews WHERE id = ?').get(info.lastInsertRowid));
+}
+export function deleteReview(id) {
+  db.prepare('DELETE FROM reviews WHERE id = ?').run(Number(id));
+}
+// 内嵌进列表的指纹只保留规范化关键信号 + 服务端信号，剥掉体积最大的 FPJS 原始 components，
+// 避免「评价管理」跨期列表把每条留言的全量指纹(10~40KB)都塞进来撑大接口。
+// 需要真正的原始全量信号时去「用户管理」看具名用户（那里按用户返回完整 details）。
+function slimFpDetails(text) {
+  let d;
+  try {
+    d = text ? JSON.parse(text) : null;
+  } catch {
+    return null;
+  }
+  if (!d || typeof d !== 'object') return null;
+  if (d.client && typeof d.client === 'object' && d.client.fingerprintjs) {
+    const { fingerprintjs, ...rest } = d.client; // eslint-disable-line no-unused-vars
+    return { ...d, client: rest };
+  }
+  return d;
+}
+
+// 后台：跨期评价列表（可按期过滤），附带期标题；并内联每条留言对应的指纹（按 review_id 反查，匿名也能带上）
+export function adminReviews({ periodId } = {}) {
+  const pid = periodId ? Number(periodId) : null;
+  const where = pid ? 'WHERE r.period_id = ?' : '';
+  const args = pid ? [pid] : [];
+  return db
+    .prepare(
+      `SELECT r.id, r.period_id AS periodId, p.title AS periodTitle, r.kind, r.name, r.content, r.created_at AS createdAt,
+              f.id AS fpId, f.fp AS fpFp, f.ip AS fpIp, f.ua AS fpUa, f.details AS fpDetails, f.kind AS fpKind, f.created_at AS fpCreatedAt
+       FROM reviews r
+       LEFT JOIN periods p ON p.id = r.period_id
+       LEFT JOIN fingerprints f ON f.id = (SELECT MAX(id) FROM fingerprints WHERE review_id = r.id)
+       ${where} ORDER BY r.id DESC`
+    )
+    .all(...args)
+    .map((r) => ({
+      id: r.id, periodId: r.periodId, periodTitle: r.periodTitle || '', kind: r.kind,
+      name: r.name || '', content: r.content, createdAt: r.createdAt,
+      fingerprint: r.fpId != null
+        ? { fp: r.fpFp || '', ip: r.fpIp || '', ua: r.fpUa || '', details: slimFpDetails(r.fpDetails), kind: r.fpKind || 'review', createdAt: r.fpCreatedAt }
+        : null,
+    }));
+}
+
 // ---------- 当前期 ----------
 
 export function activatePeriod(id) {
@@ -357,7 +438,7 @@ export function getActivePeriodRow() {
 // ---------- 数据备份：导出 / 导入 ----------
 const BACKUP_TABLES = [
   'settings', 'periods', 'entries', 'tea_products', 'period_products',
-  'tea_ratings', 'bills', 'users', 'fingerprints',
+  'tea_ratings', 'reviews', 'bills', 'users', 'fingerprints',
 ];
 
 export function exportAll() {
@@ -447,7 +528,8 @@ export function upsertUser(name) {
 
 // 记录一条指纹。client 可为前端采集对象 { id, summary, details } 或旧版字符串；
 // server 为服务端补充信号 { ip, ua, acceptLanguage, clientHints... }。
-export function recordFingerprint(name, client, kind, periodId, server) {
+// reviewId：kind=review 时传入对应评价 id，供「评价管理」按 review_id 反查这条指纹（匿名留言也能追溯）。
+export function recordFingerprint(name, client, kind, periodId, server, reviewId = null) {
   let id = '';
   let summary = '';
   let clientDetails = {};
@@ -466,8 +548,8 @@ export function recordFingerprint(name, client, kind, periodId, server) {
   // 超限（多半是被恶意灌大）则只留摘要 + 服务端信号，客户端全量信号丢弃。
   if (merged.length > 80000) merged = JSON.stringify({ id, summary, truncated: true, server: srv });
   db.prepare(
-    'INSERT INTO fingerprints (name, fp, ip, ua, details, kind, period_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(String(name || '').trim() || null, fpStr, srv.ip || '', srv.ua || '', merged, kind, periodId ?? null, nowIso());
+    'INSERT INTO fingerprints (name, fp, ip, ua, details, kind, period_id, review_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(String(name || '').trim() || null, fpStr, srv.ip || '', srv.ua || '', merged, kind, periodId ?? null, reviewId ?? null, nowIso());
 }
 
 // 用户列表（聚合各模块次数）。支持按姓名搜索 + 分页（默认每页 10）。
@@ -487,6 +569,7 @@ export function listUsers({ page = 1, pageSize = 10, q = '' } = {}) {
     updatedAt: u.updated_at,
     lotteryCount: db.prepare('SELECT COUNT(*) c FROM entries WHERE name = ?').get(u.name).c,
     ratingCount: db.prepare('SELECT COUNT(*) c FROM tea_ratings WHERE name = ?').get(u.name).c,
+    reviewCount: db.prepare('SELECT COUNT(*) c FROM reviews WHERE name = ?').get(u.name).c,
     fpCount: db.prepare('SELECT COUNT(*) c FROM fingerprints WHERE name = ?').get(u.name).c,
   }));
   return { items, total, page: p, pageSize: size, pages };
@@ -510,6 +593,14 @@ export function userDetail(name) {
        WHERE r.name = ? GROUP BY r.product_id ORDER BY count DESC`
     )
     .all(nm);
+  // 本人具名留下的评价 / 建议（匿名留言 name=null 不归入用户）
+  const reviews = db
+    .prepare(
+      `SELECT r.period_id AS periodId, p.title AS periodTitle, r.kind, r.content, r.created_at AS createdAt
+       FROM reviews r LEFT JOIN periods p ON p.id = r.period_id
+       WHERE r.name = ? ORDER BY r.id DESC`
+    )
+    .all(nm);
   const fingerprints = db
     .prepare('SELECT fp, ip, ua, details, kind, period_id AS periodId, created_at AS createdAt FROM fingerprints WHERE name = ? ORDER BY id DESC')
     .all(nm)
@@ -522,7 +613,7 @@ export function userDetail(name) {
       }
       return { fp: f.fp, ip: f.ip || '', ua: f.ua || '', details, kind: f.kind, periodId: f.periodId, createdAt: f.createdAt };
     });
-  return { name: nm, lottery, ratings, fingerprints };
+  return { name: nm, lottery, ratings, reviews, fingerprints };
 }
 
 // 本期账单是否展示：期数级 bill_show（inherit|on|off）覆盖系统级 period_bill_show

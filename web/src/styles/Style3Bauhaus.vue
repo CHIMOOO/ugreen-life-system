@@ -17,6 +17,7 @@
  */
 import { assetUrl } from '../api.js';
 import { stepExplain, TEA_LEVELS, teaExtraText } from '../useLottery.js';
+import ReviewSection from '../components/ReviewSection.vue';
 import { useStyleShell } from '../useStyleShell.js';
 import DiceButton from '../components/DiceButton.vue';
 import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
@@ -31,8 +32,9 @@ const props = defineProps({
   votedProducts: { type: Object, default: () => ({}) },
   ratingBusy: { type: Object, default: () => ({}) },
   nameStatus: { type: Object, default: () => ({ exists: false, checking: false }) },
+  reviewState: { type: Object, default: () => ({ status: 'idle', message: '' }) },
 });
-const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
+const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel', 'submit-review']);
 
 // 三原色循环——红、蓝、黄，包豪斯的全部色谱。
 const PRIMARIES = ['#D02020', '#1040C0', '#F0C020'];
@@ -42,9 +44,21 @@ const primary = (i) => PRIMARIES[((i % PRIMARIES.length) + PRIMARIES.length) % P
 // 本文件只保留自己的视觉（配色 ACCENTS + 模板）。
 const {
   name, number, localError, showConfirm, pending, confirmCancel,
-  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
-  doSubmit, confirmSubmit, doRate, doCancel,
+  isDrawn, lotteryOn, teaOn, reviewOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
+  doSubmit, confirmSubmit, doRate, doCancel, doSubmitReview,
 } = useStyleShell(props, emit);
+
+// 评价墙主题：跟随包豪斯配色（accent 用主色 bau-red；卡片=白底粗黑边硬投影，输入=方框粗边聚焦变白）
+const reviewTheme = {
+  accent: '#D02020',
+  panel: 'border-4 border-bau-ink bg-white p-6 shadow-bau-lg sm:p-8',
+  heading: 'text-2xl font-black uppercase tracking-tight text-bau-ink',
+  sub: 'font-medium text-bau-ink/70',
+  field: 'w-full rounded-none border-4 border-bau-ink bg-bau-bg px-5 py-3 font-bold text-bau-ink placeholder-bau-ink/30 outline-none transition focus:bg-white focus:shadow-bau-sm',
+  kindOff: 'border-bau-ink/30 text-bau-ink/60 hover:text-bau-ink',
+  item: 'rounded-none border-2 border-bau-ink bg-bau-bg p-4',
+  empty: 'text-bau-ink/50',
+};
 // 「已参与」面板两步撤销的确认态 confirmCancel、doCancel 均来自 useStyleShell
 </script>
 
@@ -185,8 +199,11 @@ const {
           </div>
         </div>
 
+        <!-- 评价 / 建议：未开奖时位于抽奖下方；已开奖时位于结果上方 -->
+        <ReviewSection v-if="reviewOn" :period="period" :config="config" :submit-state="reviewState" :theme="reviewTheme" class="mt-12" @submit-review="doSubmitReview" />
+
         <!-- 开奖结果 -->
-        <div v-else-if="isDrawn && result" class="space-y-12">
+        <div v-if="isDrawn && result" class="mt-12 space-y-12">
           <!-- (a) 中奖名单 -->
           <div>
             <div class="flex items-center gap-4 border-b-4 border-bau-ink pb-4">
@@ -263,6 +280,9 @@ const {
           </div>
         </div>
       </section>
+
+      <!-- 评价 / 建议：抽奖模块本身关闭但评价开启时，单独成块 -->
+      <ReviewSection v-if="reviewOn && !lotteryOn" :period="period" :config="config" :submit-state="reviewState" :theme="reviewTheme" class="mb-16" @submit-review="doSubmitReview" />
 
       <!-- ③ 下午茶 -->
       <section v-if="teaOn" class="mt-12 border-4 border-bau-ink bg-bau-red p-6 text-white shadow-bau-lg sm:p-10">

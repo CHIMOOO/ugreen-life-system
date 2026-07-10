@@ -19,6 +19,7 @@
  */
 import { assetUrl } from '../api.js';
 import { stepExplain, TEA_LEVELS, teaExtraText } from '../useLottery.js';
+import ReviewSection from '../components/ReviewSection.vue';
 import { useStyleShell } from '../useStyleShell.js';
 import DiceButton from '../components/DiceButton.vue';
 import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
@@ -33,8 +34,9 @@ const props = defineProps({
   votedProducts: { type: Object, default: () => ({}) },
   ratingBusy: { type: Object, default: () => ({}) },
   nameStatus: { type: Object, default: () => ({ exists: false, checking: false }) },
+  reviewState: { type: Object, default: () => ({ status: 'idle', message: '' }) },
 });
-const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
+const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel', 'submit-review']);
 
 // 罗马数字编号（栏目用）
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
@@ -44,10 +46,23 @@ const roman = (i) => ROMAN[i] || String(i + 1);
 // 本文件只保留自己的视觉（配色 ACCENTS + 模板）。
 const {
   name, number, localError, showConfirm, pending, confirmCancel,
-  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
-  doSubmit, confirmSubmit, doRate, doCancel,
+  isDrawn, lotteryOn, teaOn, reviewOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
+  doSubmit, confirmSubmit, doRate, doCancel, doSubmitReview,
 } = useStyleShell(props, emit);
 // 「已参与」面板两步撤销的确认态 confirmCancel、doCancel 均来自 useStyleShell
+
+// 评价墙主题：跟随学院风配色（accent 用勃艮第红 aca-burgundy）
+const reviewTheme = {
+  accent: '#7c2d12',
+  panel: 'aca-frame bg-aca-panel p-6 text-aca-ink font-garamond sm:p-8',
+  heading: 'font-playfair text-3xl font-bold italic text-aca-ink',
+  sub: 'italic text-aca-brown',
+  field: 'w-full border-b-2 border-aca-ink bg-transparent px-1 py-2 font-garamond text-lg text-aca-ink placeholder-aca-brown/50 outline-none transition focus:border-aca-burgundy',
+  submit: 'bg-aca-burgundy font-playfair uppercase tracking-widest text-aca-paper hover:bg-aca-ink',
+  kindOff: 'border-aca-ink/40 text-aca-brown hover:text-aca-ink',
+  item: 'border-2 border-aca-gold/40 bg-aca-paper p-4',
+  empty: 'italic text-aca-brown',
+};
 </script>
 
 <template>
@@ -174,8 +189,11 @@ const {
           </div>
         </div>
 
+        <!-- 评价 / 建议：未开奖时位于抽奖下方；已开奖时位于结果上方 -->
+        <ReviewSection v-if="reviewOn" :period="period" :config="config" :submit-state="reviewState" :theme="reviewTheme" class="mt-12" @submit-review="doSubmitReview" />
+
         <!-- 开奖结果 -->
-        <div v-else-if="isDrawn && result" class="space-y-14">
+        <div v-if="isDrawn && result" class="mt-12 space-y-14">
           <!-- (a) 中奖名单 · 获奖名录 -->
           <div>
             <h2 class="text-center font-playfair text-4xl font-bold italic text-aca-ink sm:text-5xl">
@@ -260,6 +278,9 @@ const {
           </div>
         </div>
       </section>
+
+      <!-- 评价 / 建议：抽奖模块本身关闭但评价开启时，单独成块 -->
+      <ReviewSection v-if="reviewOn && !lotteryOn" :period="period" :config="config" :submit-state="reviewState" :theme="reviewTheme" class="mb-16" @submit-review="doSubmitReview" />
 
       <!-- ③ 下午茶 -->
       <section v-if="teaOn" class="mb-16">

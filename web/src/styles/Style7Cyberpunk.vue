@@ -17,6 +17,7 @@
  */
 import { assetUrl } from '../api.js';
 import { stepExplain, TEA_LEVELS, teaExtraText } from '../useLottery.js';
+import ReviewSection from '../components/ReviewSection.vue';
 import { useStyleShell } from '../useStyleShell.js';
 import DiceButton from '../components/DiceButton.vue';
 import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
@@ -31,8 +32,9 @@ const props = defineProps({
   votedProducts: { type: Object, default: () => ({}) },
   ratingBusy: { type: Object, default: () => ({}) },
   nameStatus: { type: Object, default: () => ({ exists: false, checking: false }) },
+  reviewState: { type: Object, default: () => ({ status: 'idle', message: '' }) },
 });
-const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
+const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel', 'submit-review']);
 
 // 霓虹轮换色：粉 / 青 / 紫 / 黄 / 绿
 const ACCENTS = ['#FF2A6D', '#05D9E8', '#9D00FF', '#F9F002', '#00FF9F'];
@@ -42,9 +44,22 @@ const accent = (i) => ACCENTS[((i % ACCENTS.length) + ACCENTS.length) % ACCENTS.
 // 本文件只保留自己的视觉（配色 ACCENTS + 模板）。
 const {
   name, number, localError, showConfirm, pending, confirmCancel,
-  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
-  doSubmit, confirmSubmit, doRate, doCancel,
+  isDrawn, lotteryOn, teaOn, reviewOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
+  doSubmit, confirmSubmit, doRate, doCancel, doSubmitReview,
 } = useStyleShell(props, emit);
+
+// 评价墙主题：跟随赛博朋克霓虹配色（accent 用霓虹粉 cyber-pink）
+const reviewTheme = {
+  accent: '#FF2A6D',
+  panel: 'cyber-clip border border-cyber-pink/60 bg-cyber-panel/80 p-6 text-cyber-fg cyber-glow-pink backdrop-blur sm:p-8',
+  heading: 'font-orbitron text-2xl font-black uppercase italic tracking-wide text-cyber-pink cyber-text-pink',
+  sub: 'font-mono text-cyber-fg/70',
+  field: 'w-full cyber-clip border border-cyber-cyan bg-black/60 px-5 py-4 font-mono text-cyber-cyan placeholder-cyber-fg/30 outline-none transition focus:cyber-glow-cyan',
+  submit: 'cyber-clip bg-cyber-pink font-orbitron uppercase tracking-widest text-black cyber-glow-pink hover:scale-[1.03]',
+  kindOff: 'border-cyber-cyan/50 text-cyber-cyan hover:cyber-glow-cyan',
+  item: 'cyber-clip border border-cyber-purple/40 bg-black/50 p-4',
+  empty: 'font-mono text-cyber-fg/45',
+};
 
 // 「已参与」面板两步撤销的确认态 confirmCancel、doCancel 均来自 useStyleShell
 </script>
@@ -160,8 +175,11 @@ const {
           </div>
         </div>
 
+        <!-- 评价 / 建议：未开奖时位于抽奖下方；已开奖时位于结果上方 -->
+        <ReviewSection v-if="reviewOn" :period="period" :config="config" :submit-state="reviewState" :theme="reviewTheme" class="mt-12" @submit-review="doSubmitReview" />
+
         <!-- 开奖结果 -->
-        <div v-else-if="isDrawn && result" class="space-y-12">
+        <div v-if="isDrawn && result" class="mt-12 space-y-12">
           <!-- (a) 中奖名单 -->
           <div>
             <h2 class="text-center font-orbitron text-3xl font-black uppercase italic tracking-wide text-cyber-pink cyber-text-pink sm:text-5xl">▰ 中奖名单 // WINNERS</h2>
@@ -227,6 +245,9 @@ const {
           </div>
         </div>
       </section>
+
+      <!-- 评价 / 建议：抽奖模块本身关闭但评价开启时，单独成块 -->
+      <ReviewSection v-if="reviewOn && !lotteryOn" :period="period" :config="config" :submit-state="reviewState" :theme="reviewTheme" class="mb-16" @submit-review="doSubmitReview" />
 
       <!-- ③ 下午茶 -->
       <section v-if="teaOn" class="mb-16">

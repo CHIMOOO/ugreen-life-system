@@ -37,4 +37,6 @@ export const api = {
   cancelEntry: (id, body) => jsonPost('/api/periods/' + id + '/cancel', body),
   // body: { productId, level, clientId }
   rateTea: (id, body) => jsonPost('/api/periods/' + id + '/tea', body),
+  // body: { kind, name?, content }
+  submitReview: (id, body) => jsonPost('/api/periods/' + id + '/reviews', body),
 };

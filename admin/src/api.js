@@ -92,6 +92,9 @@ export const admin = {
   draw: (id) => req('/api/admin/periods/' + id + '/draw', { method: 'POST', body: {} }),
   reopen: (id) => req('/api/admin/periods/' + id + '/reopen', { method: 'POST', body: {} }),
   setInvalid: (id, name, invalid) => req('/api/admin/periods/' + id + '/invalid', { method: 'POST', body: { name, invalid } }),
+  // 评价 / 建议管理（可选 periodId 过滤）
+  reviews: (periodId) => req('/api/admin/reviews' + (periodId ? '?periodId=' + Number(periodId) : '')),
+  deleteReview: (id) => req('/api/admin/reviews/' + id, { method: 'DELETE' }),
   upload: (file) => {
     const fd = new FormData();
     fd.append('file', file);

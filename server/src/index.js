@@ -14,6 +14,7 @@ import {
   activatePeriod, getActivePeriodRow,
   ledger, billsForPeriod, billShowEffective,
   upsertUser, recordFingerprint, listUsers, userDetail,
+  listReviews, addReview, deleteReview, adminReviews,
   exportAll, importAll,
 } from './db.js';
 import { computeResult, normalizePrizes } from './lottery.js';
@@ -135,17 +136,20 @@ function teaExtraOpts(adminView) {
 // 对外（公开 & 后台共用）的期数序列化。所有 style 共用同一份契约。
 // adminView: 后台端为 true（商品内部字段全开、含本期金额）；公开端为 false（按系统逐字段开关）。
 // mask: 公开端为 true，会用「系统级模块开关」遮蔽期数的抽奖/下午茶（关闭则用户彻底看不到，含规则）。后台端为 false，返回真实期数设置。
-function serializePeriod(row, { withResult = false, withEntries = false, adminView = false, mask = false } = {}) {
+function serializePeriod(row, { withResult = false, withEntries = false, withReviews = false, adminView = false, mask = false } = {}) {
   const sysLottery = getSetting('lottery_module_enabled') !== '0';
   const sysTea = getSetting('tea_module_enabled') !== '0';
+  const sysReview = getSetting('review_module_enabled') !== '0';
   const lotteryEnabled = mask ? sysLottery && !!row.lottery_enabled : !!row.lottery_enabled;
   const teaEnabled = mask ? sysTea && !!row.tea_enabled : !!row.tea_enabled;
+  const reviewEnabled = mask ? sysReview && !!row.review_enabled : !!row.review_enabled;
   const data = {
     id: row.id,
     title: row.title,
     style: row.style,
     lotteryEnabled,
     teaEnabled,
+    reviewEnabled,
     isActive: !!row.is_active,
     status: row.status,
     createdAt: row.created_at,
@@ -155,6 +159,8 @@ function serializePeriod(row, { withResult = false, withEntries = false, adminVi
     tea: teaEnabled ? teaPayload(row, teaExtraOpts(adminView)) : null,
     bill: { show: billShowEffective(row), ...billsForPeriod(row.id) },
     billShow: row.bill_show || 'inherit',
+    // 评价墙：始终下发开关；items 仅在详情视图(withReviews)且（公开端已开启 / 后台端）时带上，列表端保持轻量
+    reviews: { enabled: reviewEnabled, items: withReviews && (adminView || reviewEnabled) ? listReviews(row.id) : [] },
     invalidNames: safeJsonParse(row.invalid_names, []),
   };
   if (withResult && row.status === 'drawn' && row.result) {
@@ -179,7 +185,7 @@ function buildResult(row) {
 function adminPeriodDetail(id) {
   const row = getPeriodRow(id);
   if (!row) return null;
-  const data = serializePeriod(row, { withResult: true, withEntries: true, adminView: true });
+  const data = serializePeriod(row, { withResult: true, withEntries: true, withReviews: true, adminView: true });
   data.productItems = periodProductItems(row.id);
   data.productIds = data.productItems.map((i) => i.id);
   return data;
@@ -210,7 +216,7 @@ app.get('/api/config/defaults', (req, res) => {
 // 首页：当前进行中的那一期（全局至多一期）
 app.get('/api/active', (req, res) => {
   const row = getActivePeriodRow();
-  res.json({ period: row ? serializePeriod(row, { withResult: true, mask: true }) : null });
+  res.json({ period: row ? serializePeriod(row, { withResult: true, withReviews: true, mask: true }) : null });
 });
 
 // 期数列表（轻量）
@@ -223,7 +229,7 @@ app.get('/api/periods', (req, res) => {
 app.get('/api/periods/:id', (req, res) => {
   const row = getPeriodRow(req.params.id);
   if (!row) return res.status(404).json({ error: 'not_found' });
-  res.json(serializePeriod(row, { withResult: true, mask: true }));
+  res.json(serializePeriod(row, { withResult: true, withReviews: true, mask: true }));
 });
 
 // 提交抽奖：姓名 + 1~9999 幸运数字，姓名与数字均防重复。
@@ -316,6 +322,26 @@ app.post('/api/periods/:id/tea', (req, res) => {
   res.json({ ok: true, ratings: productRatings(row.id, productId) });
 });
 
+// 提交评价 / 建议：{ kind, name?, content }。内容必填、姓名可选（匿名）。允许同一人多次留言。
+app.post('/api/periods/:id/reviews', (req, res) => {
+  const row = getPeriodRow(req.params.id);
+  if (!row) return res.status(404).json({ error: 'not_found' });
+  if (!row.review_enabled || getSetting('review_module_enabled') === '0')
+    return res.status(400).json({ error: 'review_disabled' });
+
+  const kind = req.body?.kind === 'suggestion' ? 'suggestion' : 'review';
+  const name = (req.body?.name ?? '').toString().trim().slice(0, 30); // 与抽奖入口一致地限长
+  const content = (req.body?.content ?? '').toString().trim();
+  if (!content) return res.status(400).json({ error: 'content_required' });
+  if (content.length > 1000) return res.status(400).json({ error: 'content_too_long' });
+
+  const review = addReview({ periodId: row.id, kind, name: name || null, content });
+  if (name) upsertUser(name);
+  // 关联 review.id：后台「评价管理」据此把这条留言与它的指纹一一对应（匿名留言也能追溯到设备）
+  recordFingerprint(name, req.body?.fingerprint, 'review', row.id, serverSignals(req), review.id);
+  res.json({ ok: true, review });
+});
+
 // ================= 后台接口 =================
 
 app.post('/api/admin/login', (req, res) => {
@@ -381,6 +407,7 @@ app.put('/api/admin/config', adminAuth, (req, res) => {
   if (b.teaShowQty !== undefined) setSetting('tea_show_qty', b.teaShowQty ? '1' : '0');
   if (b.lotteryModuleEnabled !== undefined) setSetting('lottery_module_enabled', b.lotteryModuleEnabled ? '1' : '0');
   if (b.teaModuleEnabled !== undefined) setSetting('tea_module_enabled', b.teaModuleEnabled ? '1' : '0');
+  if (b.reviewModuleEnabled !== undefined) setSetting('review_module_enabled', b.reviewModuleEnabled ? '1' : '0');
   if (b.billModuleEnabled !== undefined) setSetting('bill_module_enabled', b.billModuleEnabled ? '1' : '0');
   if (b.periodBillShow !== undefined) setSetting('period_bill_show', b.periodBillShow ? '1' : '0');
   if (b.imageQuality !== undefined) {
@@ -481,12 +508,13 @@ function readPeriodInput(body) {
   const style = body?.style === 'random' || STYLE_KEYS.includes(body?.style) ? body.style : 'style1';
   const lotteryEnabled = body?.lotteryEnabled ? 1 : 0;
   const teaEnabled = body?.teaEnabled ? 1 : 0;
+  const reviewEnabled = body?.reviewEnabled ? 1 : 0;
   const prizes = JSON.stringify(normalizePrizes(body?.prizes));
   let hours = parseInt(body?.teaRatingHours, 10);
   if (!Number.isFinite(hours) || hours < 1) hours = 24;
   const closeAt = new Date(Date.now() + hours * 3600 * 1000).toISOString();
   const billShow = ['inherit', 'on', 'off'].includes(body?.billShow) ? body.billShow : 'inherit';
-  return { title, style, lotteryEnabled, teaEnabled, prizes, hours, closeAt, billShow };
+  return { title, style, lotteryEnabled, teaEnabled, reviewEnabled, prizes, hours, closeAt, billShow };
 }
 
 app.post('/api/admin/periods', adminAuth, (req, res) => {
@@ -494,10 +522,10 @@ app.post('/api/admin/periods', adminAuth, (req, res) => {
   if (!i.title) return res.status(400).json({ error: 'title_required' });
   const info = db
     .prepare(
-      `INSERT INTO periods (title, style, lottery_enabled, tea_enabled, status, prizes, tea_rating_hours, tea_close_at, bill_show, created_at)
-       VALUES (?, ?, ?, ?, 'open', ?, ?, ?, ?, ?)`
+      `INSERT INTO periods (title, style, lottery_enabled, tea_enabled, review_enabled, status, prizes, tea_rating_hours, tea_close_at, bill_show, created_at)
+       VALUES (?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?)`
     )
-    .run(i.title, i.style, i.lotteryEnabled, i.teaEnabled, i.prizes, i.hours, i.closeAt, i.billShow, nowIso());
+    .run(i.title, i.style, i.lotteryEnabled, i.teaEnabled, i.reviewEnabled, i.prizes, i.hours, i.closeAt, i.billShow, nowIso());
   setPeriodProducts(info.lastInsertRowid, req.body?.products ?? req.body?.productIds);
   if (req.body?.activate) activatePeriod(info.lastInsertRowid);
   res.json(adminPeriodDetail(info.lastInsertRowid));
@@ -511,8 +539,8 @@ app.put('/api/admin/periods/:id', adminAuth, (req, res) => {
   const keepClose = req.body?.teaRatingHours == null && row.tea_close_at ? row.tea_close_at : i.closeAt;
   const keepHours = req.body?.teaRatingHours == null ? row.tea_rating_hours : i.hours;
   db.prepare(
-    `UPDATE periods SET title=?, style=?, lottery_enabled=?, tea_enabled=?, prizes=?, tea_rating_hours=?, tea_close_at=?, bill_show=? WHERE id=?`
-  ).run(i.title, i.style, i.lotteryEnabled, i.teaEnabled, i.prizes, keepHours, keepClose, i.billShow, row.id);
+    `UPDATE periods SET title=?, style=?, lottery_enabled=?, tea_enabled=?, review_enabled=?, prizes=?, tea_rating_hours=?, tea_close_at=?, bill_show=? WHERE id=?`
+  ).run(i.title, i.style, i.lotteryEnabled, i.teaEnabled, i.reviewEnabled, i.prizes, keepHours, keepClose, i.billShow, row.id);
   if (req.body?.products !== undefined || req.body?.productIds !== undefined)
     setPeriodProducts(row.id, req.body.products ?? req.body.productIds);
   res.json(adminPeriodDetail(row.id));
@@ -523,6 +551,7 @@ app.delete('/api/admin/periods/:id', adminAuth, (req, res) => {
   db.prepare('DELETE FROM entries WHERE period_id = ?').run(id);
   db.prepare('DELETE FROM tea_ratings WHERE period_id = ?').run(id);
   db.prepare('DELETE FROM period_products WHERE period_id = ?').run(id);
+  db.prepare('DELETE FROM reviews WHERE period_id = ?').run(id);
   db.prepare('DELETE FROM periods WHERE id = ?').run(id);
   res.json({ ok: true });
 });
@@ -696,6 +725,16 @@ app.get('/api/admin/users/:name', adminAuth, (req, res) => {
   const d = userDetail(name);
   if (!d) return res.status(404).json({ error: 'not_found' });
   res.json(d);
+});
+
+// ================= 评价 / 建议管理 =================
+// 跨期评价列表（可选 ?periodId= 过滤），带期标题；供后台「评价管理」标签
+app.get('/api/admin/reviews', adminAuth, (req, res) => {
+  res.json({ items: adminReviews({ periodId: req.query.periodId }) });
+});
+app.delete('/api/admin/reviews/:id', adminAuth, (req, res) => {
+  deleteReview(req.params.id);
+  res.json({ ok: true });
 });
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));

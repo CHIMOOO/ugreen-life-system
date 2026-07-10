@@ -7,13 +7,15 @@ import { resolveStyle, randomStyleKey, setPinnedRandomStyle } from '../styles/re
 import AppLoader from '../components/AppLoader.vue';
 import NoEvent from '../components/NoEvent.vue';
 import ImageZoomOverlay from '../components/ImageZoomOverlay.vue';
+import RefreshFab from '../components/RefreshFab.vue';
 
 const loading = ref(true);
+const refreshing = ref(false);
 const config = ref(null);
 const period = ref(null);
 const periods = ref([]);
 
-const { submitting, submitState, votedProducts, ratingBusy, nameStatus, onSubmit, onRate, onNameInput, onCancel, syncLocal } =
+const { submitting, submitState, votedProducts, ratingBusy, nameStatus, reviewState, onSubmit, onRate, onNameInput, onCancel, onSubmitReview, syncLocal } =
   usePeriodShell(period);
 
 // 首页风格：跟随当期 / 随机 / 固定，由后台配置决定
@@ -26,7 +28,8 @@ const styleComponent = computed(() => {
   return resolveStyle(key);
 });
 
-onMounted(async () => {
+// 拉取首页数据（配置 + 当前期 + 历史期）。onMounted 与「刷新数据」按钮共用。
+async function load() {
   try {
     const [cfgRes, actRes, listRes] = await Promise.all([api.config(), api.active(), api.periods()]);
     config.value = cfgRes.data || {};
@@ -36,10 +39,20 @@ onMounted(async () => {
     if (period.value) syncLocal();
   } catch {
     config.value = config.value || {}; // 后端不可达：退化为无活动空态，避免卡在 Loading
-  } finally {
-    loading.value = false;
   }
+}
+
+onMounted(async () => {
+  await load();
+  loading.value = false;
 });
+
+async function refresh() {
+  if (refreshing.value) return;
+  refreshing.value = true;
+  await load();
+  refreshing.value = false;
+}
 </script>
 
 <template>
@@ -55,10 +68,12 @@ onMounted(async () => {
       :voted-products="votedProducts"
       :rating-busy="ratingBusy"
       :name-status="nameStatus"
+      :review-state="reviewState"
       @submit="onSubmit"
       @rate="onRate"
       @name-input="onNameInput"
       @cancel="onCancel"
+      @submit-review="onSubmitReview"
     />
     <NoEvent v-else :config="config" :periods="periods" />
 
@@ -69,6 +84,7 @@ onMounted(async () => {
       class="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/90 px-5 py-3 font-bold text-slate-800 shadow-lg backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-white"
     >📒 总账单</RouterLink>
 
+    <RefreshFab :busy="refreshing" @refresh="refresh" />
     <ImageZoomOverlay />
   </template>
 </template>

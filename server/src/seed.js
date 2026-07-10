@@ -2,8 +2,8 @@
 import { db, nowIso, setSetting, activatePeriod, setPeriodProducts, upsertUser, recordFingerprint, DEFAULT_SETTINGS } from './db.js';
 import { computeResult, normalizePrizes } from './lottery.js';
 
-db.exec('DELETE FROM entries; DELETE FROM tea_ratings; DELETE FROM period_products; DELETE FROM tea_products; DELETE FROM periods; DELETE FROM bills; DELETE FROM fingerprints; DELETE FROM users;');
-db.exec("DELETE FROM sqlite_sequence WHERE name IN ('periods','entries','tea_ratings','tea_products','period_products','bills','fingerprints','users');");
+db.exec('DELETE FROM entries; DELETE FROM tea_ratings; DELETE FROM reviews; DELETE FROM period_products; DELETE FROM tea_products; DELETE FROM periods; DELETE FROM bills; DELETE FROM fingerprints; DELETE FROM users;');
+db.exec("DELETE FROM sqlite_sequence WHERE name IN ('periods','entries','tea_ratings','reviews','tea_products','period_products','bills','fingerprints','users');");
 
 // 系统配置
 setSetting('department_name', 'AIoT客户端组');
@@ -126,6 +126,23 @@ seedPeriod({
   ],
 });
 
+// ---- 评价 / 建议 ----
+// 开启第一、二期的评价模块，并写入几条示例（含匿名 + 两种类型），让前台评价墙 / 后台评价管理有内容可看。
+db.prepare('UPDATE periods SET review_enabled = 1 WHERE id IN (?, ?)').run(p1, p2);
+const insReview = db.prepare(
+  'INSERT INTO reviews (period_id, kind, name, content, created_at) VALUES (?, ?, ?, ?, ?)'
+);
+const minsAgo = (m) => new Date(Date.now() - m * 60000).toISOString();
+// 捕获每条留言的 id，后面「指纹样例」按 review_id 给部分留言（含匿名）补一条对应指纹，演示指纹↔评价关联。
+const reviewIds = [
+  [p1, 'review', '小明', '这期奖品很给力，蓝牙音箱种草了！组织得也很用心 👍', 8],
+  [p1, 'review', '', '下午茶的提拉米苏太好吃了，可惜手慢没抢到评分名额～', 26],
+  [p1, 'suggestion', '阿珍', '建议下一期把开奖时间提前到周五下午，周一大家都很忙。', 42],
+  [p1, 'suggestion', '', '下次能不能加点咸口的点心？甜的吃多了有点腻。', 73],
+  [p2, 'review', 'Jerry', '机械键盘手感绝了，这波中奖血赚，感谢部门！', 15],
+  [p2, 'suggestion', '静香', '建议下一期奖品加一个「神秘大奖」，增加点悬念感。', 55],
+].map(([pid, kind, name, content, ago]) => insReview.run(pid, kind, name || null, content, minsAgo(ago)).lastInsertRowid);
+
 // ---- 账单流水 ----
 const insBill = db.prepare(
   'INSERT INTO bills (date, title, kind, amount, note, period_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
@@ -215,6 +232,10 @@ recordFingerprint('小红', sampleClient(mac), 'rating', p1, sampleServer('10.12
 recordFingerprint('阿强', sampleClient(android), 'lottery', p1, sampleServer('172.20.8.9', android.ua));
 recordFingerprint('阿强', sampleClient(android), 'cancel', p1, sampleServer('172.20.8.9', android.ua));
 recordFingerprint('Tom', sampleClient(winPC), 'lottery', p2, sampleServer('10.12.3.77', winPC.ua));
+// 评价对应的指纹（第 6 个参数 = 关联的 review_id）：含一条匿名留言(reviewIds[1])，演示匿名也能在「评价管理」反查设备。
+recordFingerprint('小明', sampleClient(winPC), 'review', p1, sampleServer('10.12.3.45', winPC.ua), reviewIds[0]);
+recordFingerprint('', sampleClient(mac), 'review', p1, sampleServer('10.12.3.51', mac.ua), reviewIds[1]);
+recordFingerprint('Jerry', sampleClient(android), 'review', p2, sampleServer('172.20.8.9', android.ua), reviewIds[4]);
 
 // 当前期（同时只有一期在线）
 activatePeriod(p1);

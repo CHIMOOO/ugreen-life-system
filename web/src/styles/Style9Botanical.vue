@@ -17,6 +17,7 @@
  */
 import { assetUrl } from '../api.js';
 import { stepExplain, TEA_LEVELS, teaExtraText } from '../useLottery.js';
+import ReviewSection from '../components/ReviewSection.vue';
 import { useStyleShell } from '../useStyleShell.js';
 import DiceButton from '../components/DiceButton.vue';
 import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
@@ -31,17 +32,30 @@ const props = defineProps({
   votedProducts: { type: Object, default: () => ({}) },
   ratingBusy: { type: Object, default: () => ({}) },
   nameStatus: { type: Object, default: () => ({ exists: false, checking: false }) },
+  reviewState: { type: Object, default: () => ({ status: 'idle', message: '' }) },
 });
-const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
+const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel', 'submit-review']);
 
 // 抽奖表单 / 规则确认弹窗 / 评分 / 撤销等交互逻辑：12 套 style 共用，见 useStyleShell。
 // 本文件只保留自己的视觉（配色 ACCENTS + 模板）。
 const {
   name, number, localError, showConfirm, pending, confirmCancel,
-  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
-  doSubmit, confirmSubmit, doRate, doCancel,
+  isDrawn, lotteryOn, teaOn, reviewOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
+  doSubmit, confirmSubmit, doRate, doCancel, doSubmitReview,
 } = useStyleShell(props, emit);
 // 「已参与」面板两步撤销的确认态 confirmCancel、doCancel 均来自 useStyleShell
+
+// 评价墙主题：跟随植物自然配色（accent 用叶绿 bot-leaf）
+const reviewTheme = {
+  accent: '#3E6B47',
+  panel: 'rounded-[28px] border border-bot-sage/50 bg-bot-cream/70 p-6 bot-card sm:p-8',
+  heading: 'flex items-center gap-2 font-cormorant text-3xl font-semibold text-bot-leaf',
+  sub: 'font-cormorant text-lg italic text-bot-ink/70',
+  field: 'w-full rounded-2xl border border-bot-sage bg-white px-5 py-4 text-lg text-bot-ink placeholder-bot-sage/60 outline-none transition focus:border-bot-leaf focus:ring-2 focus:ring-bot-leaf/20',
+  kindOff: 'border border-bot-sage text-bot-leaf hover:bg-bot-sage/15',
+  item: 'rounded-[24px] border border-bot-sage/40 bg-bot-bg/60 p-4',
+  empty: 'text-bot-ink/55',
+};
 </script>
 
 <template>
@@ -179,8 +193,11 @@ const {
           </div>
         </div>
 
+        <!-- 评价 / 建议：未开奖时位于抽奖下方；已开奖时位于结果上方 -->
+        <ReviewSection v-if="reviewOn" :period="period" :config="config" :submit-state="reviewState" :theme="reviewTheme" class="mt-12" @submit-review="doSubmitReview" />
+
         <!-- 开奖结果 -->
-        <div v-else-if="isDrawn && result" class="space-y-14">
+        <div v-if="isDrawn && result" class="mt-12 space-y-14">
           <!-- (a) 中奖名单 -->
           <div>
             <h2 class="text-center font-cormorant text-4xl font-semibold italic text-bot-ink sm:text-5xl">🌼 中奖名单</h2>
@@ -251,6 +268,9 @@ const {
           </div>
         </div>
       </section>
+
+      <!-- 评价 / 建议：抽奖模块本身关闭但评价开启时，单独成块 -->
+      <ReviewSection v-if="reviewOn && !lotteryOn" :period="period" :config="config" :submit-state="reviewState" :theme="reviewTheme" class="mb-16" @submit-review="doSubmitReview" />
 
       <!-- ③ 下午茶 -->
       <section v-if="teaOn" class="mb-20">

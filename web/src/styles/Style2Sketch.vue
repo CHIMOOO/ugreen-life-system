@@ -17,6 +17,7 @@
  */
 import { assetUrl } from '../api.js';
 import { stepExplain, TEA_LEVELS, teaExtraText } from '../useLottery.js';
+import ReviewSection from '../components/ReviewSection.vue';
 import { useStyleShell } from '../useStyleShell.js';
 import DiceButton from '../components/DiceButton.vue';
 import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
@@ -31,8 +32,9 @@ const props = defineProps({
   votedProducts: { type: Object, default: () => ({}) },
   ratingBusy: { type: Object, default: () => ({}) },
   nameStatus: { type: Object, default: () => ({ exists: false, checking: false }) },
+  reviewState: { type: Object, default: () => ({ status: 'idle', message: '' }) },
 });
-const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
+const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel', 'submit-review']);
 
 // 手绘风：用细微旋转 + 不规则圆角制造「贴纸／便签」错落感
 const TILTS = ['-2deg', '1.5deg', '-1deg', '2deg', '-1.5deg', '1deg'];
@@ -49,9 +51,22 @@ const wobble = (i) => WOBBLES[((i % WOBBLES.length) + WOBBLES.length) % WOBBLES.
 // 本文件只保留自己的视觉（配色 ACCENTS + 模板）。
 const {
   name, number, localError, showConfirm, pending, confirmCancel,
-  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
-  doSubmit, confirmSubmit, doRate, doCancel,
+  isDrawn, lotteryOn, teaOn, reviewOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
+  doSubmit, confirmSubmit, doRate, doCancel, doSubmitReview,
 } = useStyleShell(props, emit);
+
+// 评价墙主题：跟随手绘随笔配色（accent 用主强调色 sketch-red）
+const reviewTheme = {
+  accent: '#ff4d4d',
+  panel: 'border-[3px] border-sketch-ink bg-white p-6 shadow-sketch-lg wobbly-md sm:p-8',
+  heading: 'font-kalam text-3xl font-bold text-sketch-red',
+  sub: 'font-patrick text-sketch-ink/70',
+  field: 'w-full border-[3px] border-sketch-ink bg-white px-5 py-3 font-patrick text-lg text-sketch-ink placeholder-sketch-ink/40 outline-none transition focus:border-sketch-blue focus:ring-2 focus:ring-sketch-blue/20 wobbly-pill',
+  submit: 'border-[3px] border-sketch-ink bg-sketch-red font-kalam shadow-sketch wobbly-pill',
+  kindOff: 'border-sketch-ink/30 text-sketch-ink/70 hover:text-sketch-ink',
+  item: 'border-[3px] border-dashed border-sketch-ink/30 bg-sketch-paper p-4 wobbly-md',
+  empty: 'text-sketch-ink/50',
+};
 // 「已参与」面板两步撤销的确认态 confirmCancel、doCancel 均来自 useStyleShell
 </script>
 
@@ -171,8 +186,11 @@ const {
           </div>
         </div>
 
+        <!-- 评价 / 建议：未开奖时位于抽奖下方；已开奖时位于结果上方 -->
+        <ReviewSection v-if="reviewOn" :period="period" :config="config" :submit-state="reviewState" :theme="reviewTheme" class="mt-12" @submit-review="doSubmitReview" />
+
         <!-- 开奖结果 -->
-        <div v-else-if="isDrawn && result" class="space-y-14">
+        <div v-if="isDrawn && result" class="mt-12 space-y-14">
           <!-- (a) 中奖名单 -->
           <div>
             <h2 class="text-center font-kalam text-4xl font-bold text-sketch-ink sm:text-5xl">🏆 中奖名单</h2>
@@ -245,6 +263,9 @@ const {
           </div>
         </div>
       </section>
+
+      <!-- 评价 / 建议：抽奖模块本身关闭但评价开启时，单独成块 -->
+      <ReviewSection v-if="reviewOn && !lotteryOn" :period="period" :config="config" :submit-state="reviewState" :theme="reviewTheme" class="mb-16" @submit-review="doSubmitReview" />
 
       <!-- ③ 下午茶 -->
       <section v-if="teaOn" class="mb-20">

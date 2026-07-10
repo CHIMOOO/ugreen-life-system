@@ -51,7 +51,7 @@ defineProps({
       </section>
 
       <!-- 模块介绍（按系统级开关展示） -->
-      <div v-if="config.lotteryModuleEnabled !== false || config.teaModuleEnabled !== false" class="grid gap-6 pb-12 sm:grid-cols-2">
+      <div v-if="config.lotteryModuleEnabled !== false || config.teaModuleEnabled !== false || config.reviewModuleEnabled !== false" class="grid gap-6 pb-12 sm:grid-cols-2 lg:grid-cols-3">
         <div v-if="config.lotteryModuleEnabled !== false" class="rounded-[32px] bg-white/70 p-7 shadow-clay-card backdrop-blur-xl">
           <div class="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-purple-400 to-purple-600 text-2xl shadow-clay-button">🎲</div>
           <h2 class="mt-4 font-nunito text-2xl font-extrabold">抽奖模块</h2>
@@ -61,6 +61,11 @@ defineProps({
           <div class="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-pink-400 to-pink-600 text-2xl shadow-clay-button">🍰</div>
           <h2 class="mt-4 font-nunito text-2xl font-extrabold">评分模块</h2>
           <p class="mt-2 leading-relaxed text-clay-muted">每期下午茶有多款商品，对每款做「不推荐 / 还行 / 推荐」评分，展示好评率。</p>
+        </div>
+        <div v-if="config.reviewModuleEnabled !== false" class="rounded-[32px] bg-white/70 p-7 shadow-clay-card backdrop-blur-xl">
+          <div class="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-sky-400 to-indigo-500 text-2xl shadow-clay-button">💬</div>
+          <h2 class="mt-4 font-nunito text-2xl font-extrabold">评价模块</h2>
+          <p class="mt-2 leading-relaxed text-clay-muted">对本期活动留下评价、为下一期出出主意；可匿名，内容大家都看得到。</p>
         </div>
       </div>
 

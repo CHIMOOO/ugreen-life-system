@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 import { api } from './api.js';
 import {
-  submitErrorText, getClientId, setStoredName, getStoredName,
+  submitErrorText, reviewErrorText, getClientId, setStoredName, getStoredName,
   alreadyJoined, markJoined, joinedName, hasVotedProduct, markVotedProduct,
 } from './useLottery.js';
 import { getFingerprint } from './fingerprint.js';
@@ -14,6 +14,7 @@ export function usePeriodShell(periodRef) {
   const votedProducts = ref({}); // { [productId]: true }
   const ratingBusy = ref({});
   const nameStatus = ref({ exists: false, checking: false }); // 当前姓名是否已提交
+  const reviewState = ref({ status: 'idle', message: '' }); // idle|sending|success|error（评价/建议提交态）
   let checkTimer = null;
   let checkSeq = 0; // 查重请求序号：只采纳最后一次的结果，避免慢请求覆盖快请求
 
@@ -65,6 +66,27 @@ export function usePeriodShell(periodRef) {
     }
   }
 
+  // 提交评价 / 建议：{ kind, name?, content }。内容必填、姓名可选。允许同一人多次留言。
+  // 成功后把返回的记录插到评价墙最前（即时可见），无需整页刷新。
+  async function onSubmitReview({ kind, name, content }) {
+    const p = periodRef.value;
+    if (!p || reviewState.value.status === 'sending') return;
+    reviewState.value = { status: 'sending', message: '' };
+    const { ok, data } = await api.submitReview(p.id, {
+      kind, name, content, fingerprint: await getFingerprint(),
+    });
+    if (periodRef.value?.id !== p.id) return; // 异步期间已切换期数：丢弃陈旧结果
+    if (ok && data?.ok) {
+      reviewState.value = { status: 'success', message: '感谢你的反馈！' };
+      if (data.review) {
+        if (!p.reviews) p.reviews = { enabled: true, items: [] };
+        p.reviews.items = [data.review, ...(p.reviews.items || [])];
+      }
+    } else {
+      reviewState.value = { status: 'error', message: reviewErrorText(data?.error) };
+    }
+  }
+
   // 防抖检查姓名是否已提交（输入姓名/数字时调用）
   function onNameInput(name) {
     const nm = String(name || '').trim();
@@ -109,7 +131,7 @@ export function usePeriodShell(periodRef) {
   }
 
   return {
-    submitting, submitState, votedProducts, ratingBusy, nameStatus,
-    onSubmit, onRate, onNameInput, onCancel, syncLocal,
+    submitting, submitState, votedProducts, ratingBusy, nameStatus, reviewState,
+    onSubmit, onRate, onNameInput, onCancel, onSubmitReview, syncLocal,
   };
 }

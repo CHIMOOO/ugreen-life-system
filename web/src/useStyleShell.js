@@ -8,8 +8,8 @@ import { useLotteryForm, winnersByPrize, skippedInvalids } from './useLottery.js
 //
 // 用法（在 style 的 <script setup> 里）：
 //   const { name, number, showForm, doSubmit, doCancel, ... } = useStyleShell(props, emit);
-// props 需含 period/config/submitting/submitState/votedProducts/ratingBusy/nameStatus；
-// emit 需声明 ['submit','rate','name-input','cancel']。
+// props 需含 period/config/submitting/submitState/votedProducts/ratingBusy/nameStatus/reviewState；
+// emit 需声明 ['submit','rate','name-input','cancel','submit-review']。
 export function useStyleShell(props, emit) {
   const { name, number, validate } = useLotteryForm();
   const localError = ref('');
@@ -20,6 +20,8 @@ export function useStyleShell(props, emit) {
   const isDrawn = computed(() => props.period.status === 'drawn');
   const lotteryOn = computed(() => props.period.lotteryEnabled);
   const teaOn = computed(() => props.period.teaEnabled && props.period.tea?.products?.length);
+  const reviewOn = computed(() => props.period.reviewEnabled); // 期数级已被后端 mask 含系统级
+  const reviews = computed(() => props.period.reviews?.items || []);
   const joined = computed(() => ['success', 'joined'].includes(props.submitState.status));
   const showForm = computed(() => lotteryOn.value && !isDrawn.value && !joined.value);
   const result = computed(() => props.period.result);
@@ -42,6 +44,7 @@ export function useStyleShell(props, emit) {
     emit('submit', pending.value);
   }
   function doRate(productId, level) { emit('rate', { productId, level }); }
+  function doSubmitReview(payload) { emit('submit-review', payload); }
   // 「已参与」面板撤销：两步确认，避免误点丢失幸运数字（数字不可找回）。
   // 撤销后清空号码与本地错误，回到干净的重填状态。
   function doCancel() { emit('cancel'); confirmCancel.value = false; localError.value = ''; number.value = ''; }
@@ -54,7 +57,7 @@ export function useStyleShell(props, emit) {
 
   return {
     name, number, localError, showConfirm, pending, confirmCancel,
-    isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
-    doSubmit, confirmSubmit, doRate, doCancel,
+    isDrawn, lotteryOn, teaOn, reviewOn, reviews, joined, showForm, result, prizeGroups, skipped, errorMsg,
+    doSubmit, confirmSubmit, doRate, doCancel, doSubmitReview,
   };
 }

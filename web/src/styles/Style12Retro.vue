@@ -20,6 +20,7 @@ import { stepExplain, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import { useStyleShell } from '../useStyleShell.js';
 import DiceButton from '../components/DiceButton.vue';
 import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
+import ReviewSection from '../components/ReviewSection.vue';
 import Markdown from '../components/Markdown.vue';
 import { openZoom } from '../useImageZoom.js';
 
@@ -31,8 +32,9 @@ const props = defineProps({
   votedProducts: { type: Object, default: () => ({}) },
   ratingBusy: { type: Object, default: () => ({}) },
   nameStatus: { type: Object, default: () => ({ exists: false, checking: false }) },
+  reviewState: { type: Object, default: () => ({ status: 'idle', message: '' }) },
 });
-const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
+const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel', 'submit-review']);
 
 // 复古四色轮换：芥末黄 / 焦橙 / 牛油果绿 / 复古青
 const ACCENTS = ['#E3A857', '#CB6843', '#6B8E23', '#2A7E78'];
@@ -42,10 +44,23 @@ const accent = (i) => ACCENTS[((i % ACCENTS.length) + ACCENTS.length) % ACCENTS.
 // 本文件只保留自己的视觉（配色 ACCENTS + 模板）。
 const {
   name, number, localError, showConfirm, pending, confirmCancel,
-  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
-  doSubmit, confirmSubmit, doRate, doCancel,
+  isDrawn, lotteryOn, teaOn, reviewOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
+  doSubmit, confirmSubmit, doRate, doCancel, doSubmitReview,
 } = useStyleShell(props, emit);
 // 「已参与」面板两步撤销的确认态 confirmCancel、doCancel 均来自 useStyleShell
+
+// 评价墙主题：跟随复古 70 年代配色（accent 用焦橙 retro-orange）
+const reviewTheme = {
+  accent: '#CB6843',
+  panel: 'rounded-[24px] border-2 border-retro-brown bg-retro-panel p-6 text-retro-ink retro-shadow sm:p-8',
+  heading: 'font-righteous text-3xl uppercase tracking-wide text-retro-orange',
+  sub: 'text-retro-ink/75',
+  field: 'w-full rounded-xl border-2 border-retro-brown bg-retro-bg px-5 py-4 font-semibold text-retro-ink placeholder-retro-brown/40 outline-none transition focus:border-retro-orange focus:ring-2 focus:ring-retro-orange/40',
+  submit: 'border-2 border-retro-brown bg-retro-orange text-retro-bg font-righteous uppercase tracking-widest retro-shadow active:translate-y-0.5',
+  kindOff: 'border-2 border-retro-brown bg-retro-bg text-retro-orange',
+  item: 'rounded-2xl border-2 border-retro-brown bg-retro-bg p-4',
+  empty: 'text-retro-brown/70',
+};
 </script>
 
 <template>
@@ -172,8 +187,11 @@ const {
           </div>
         </div>
 
+        <!-- 评价 / 建议：未开奖时位于抽奖下方；已开奖时位于结果上方 -->
+        <ReviewSection v-if="reviewOn" :period="period" :config="config" :submit-state="reviewState" :theme="reviewTheme" class="mt-12" @submit-review="doSubmitReview" />
+
         <!-- 开奖结果 -->
-        <div v-else-if="isDrawn && result" class="space-y-12">
+        <div v-if="isDrawn && result" class="mt-12 space-y-12">
           <div>
             <h2 class="text-center font-righteous text-4xl uppercase tracking-wide text-retro-orange sm:text-5xl">🏆 中奖名单</h2>
             <div class="mx-auto mt-3 h-2 w-40 rounded-full retro-stripes"></div>
@@ -244,6 +262,9 @@ const {
           </div>
         </div>
       </section>
+
+      <!-- 评价 / 建议：抽奖模块本身关闭但评价开启时，单独成块 -->
+      <ReviewSection v-if="reviewOn && !lotteryOn" :period="period" :config="config" :submit-state="reviewState" :theme="reviewTheme" class="mb-16" @submit-review="doSubmitReview" />
 
       <!-- ③ 下午茶 -->
       <section v-if="teaOn" class="mb-16">

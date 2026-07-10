@@ -3,13 +3,15 @@
 import { ref, onMounted, computed } from 'vue';
 import { api } from '../api.js';
 import AppLoader from '../components/AppLoader.vue';
+import RefreshFab from '../components/RefreshFab.vue';
 
 const loading = ref(true);
+const refreshing = ref(false);
 const config = ref({});
 const data = ref({ items: [], income: 0, expense: 0, balance: 0, advance: 0 });
 
 const periodTitle = ref({}); // id -> title
-onMounted(async () => {
+async function load() {
   try {
     const [cfg, led, periods] = await Promise.all([api.config(), api.bills(), api.periods()]);
     config.value = cfg.data || {};
@@ -17,10 +19,18 @@ onMounted(async () => {
     for (const p of periods.data || []) periodTitle.value[p.id] = p.title;
   } catch {
     /* 后端不可达：保留默认空账本，避免卡在 Loading */
-  } finally {
-    loading.value = false;
   }
+}
+onMounted(async () => {
+  await load();
+  loading.value = false;
 });
+async function refresh() {
+  if (refreshing.value) return;
+  refreshing.value = true;
+  await load();
+  refreshing.value = false;
+}
 
 const balancePositive = computed(() => data.value.balance >= 0);
 function fmt(n) {
@@ -96,5 +106,6 @@ const pagedItems = computed(() => data.value.items.slice((page.value - 1) * PER,
 
       <footer class="mt-12 text-center text-sm italic text-aca-brown">{{ config.siteName }} · 账目公开</footer>
     </div>
+    <RefreshFab :busy="refreshing" @refresh="refresh" />
   </div>
 </template>

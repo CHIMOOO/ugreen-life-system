@@ -5,7 +5,7 @@ import { admin, STYLE_OPTIONS, setToken } from '../api.js';
 const f = reactive({
   departmentName: '', siteName: '', homeStyleMode: 'follow', homeFixedStyle: 'style1',
   randomThemeTtl: 0,
-  lotteryModuleEnabled: true, teaModuleEnabled: true,
+  lotteryModuleEnabled: true, teaModuleEnabled: true, reviewModuleEnabled: true,
   billModuleEnabled: true, periodBillShow: true,
   namePlaceholder: '', teaShowChannel: false, teaShowPrice: false, teaShowQty: false,
   imageQuality: 90,
@@ -175,6 +175,10 @@ const inputCls = 'mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 outli
         <label class="inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2">
           <input v-model="f.teaModuleEnabled" type="checkbox" class="h-4 w-4 rounded accent-indigo-600" />
           <span class="text-sm font-medium text-slate-700">开放下午茶评分模块</span>
+        </label>
+        <label class="inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2">
+          <input v-model="f.reviewModuleEnabled" type="checkbox" class="h-4 w-4 rounded accent-indigo-600" />
+          <span class="text-sm font-medium text-slate-700">开放评价 / 建议模块</span>
         </label>
         <label class="inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2">
           <input v-model="f.billModuleEnabled" type="checkbox" class="h-4 w-4 rounded accent-indigo-600" />

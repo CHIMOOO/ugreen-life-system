@@ -19,6 +19,7 @@ import { assetUrl } from '../api.js';
 import { stepExplain, TEA_LEVELS, teaExtraText } from '../useLottery.js';
 import DiceButton from '../components/DiceButton.vue';
 import ConfirmSubmitDialog from '../components/ConfirmSubmitDialog.vue';
+import ReviewSection from '../components/ReviewSection.vue';
 import Markdown from '../components/Markdown.vue';
 import { openZoom } from '../useImageZoom.js';
 import { useStyleShell } from '../useStyleShell.js';
@@ -31,8 +32,9 @@ const props = defineProps({
   votedProducts: { type: Object, default: () => ({}) },
   ratingBusy: { type: Object, default: () => ({}) },
   nameStatus: { type: Object, default: () => ({ exists: false, checking: false }) },
+  reviewState: { type: Object, default: () => ({ status: 'idle', message: '' }) },
 });
-const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel']);
+const emit = defineEmits(['submit', 'rate', 'name-input', 'cancel', 'submit-review']);
 
 const ACCENTS = ['#FF3AF2', '#00F5D4', '#FFE600', '#FF6B35', '#7B2FFF'];
 const accent = (i) => ACCENTS[((i % ACCENTS.length) + ACCENTS.length) % ACCENTS.length];
@@ -41,9 +43,22 @@ const accent = (i) => ACCENTS[((i % ACCENTS.length) + ACCENTS.length) % ACCENTS.
 // 本文件只保留自己的视觉（配色 ACCENTS + 模板）。
 const {
   name, number, localError, showConfirm, pending, confirmCancel,
-  isDrawn, lotteryOn, teaOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
-  doSubmit, confirmSubmit, doRate, doCancel,
+  isDrawn, lotteryOn, teaOn, reviewOn, joined, showForm, result, prizeGroups, skipped, errorMsg,
+  doSubmit, confirmSubmit, doRate, doCancel, doSubmitReview,
 } = useStyleShell(props, emit);
+
+// 评价墙主题：跟随极繁主义配色（accent 用青色 max-secondary）
+const reviewTheme = {
+  accent: '#00F5D4',
+  panel: 'rounded-3xl border-4 border-max-quinary bg-max-muted/60 p-6 text-white shadow-multi backdrop-blur-sm sm:p-8',
+  heading: 'font-outfit text-3xl font-black uppercase text-max-secondary max-text-shadow-sm',
+  sub: 'text-white/70',
+  field: 'w-full rounded-2xl border-4 border-max-quaternary bg-max-muted/50 px-5 py-3 font-bold text-white placeholder-white/40 outline-none transition focus:border-max-tertiary',
+  submit: 'bg-gradient-to-r from-[#FF3AF2] via-[#7B2FFF] to-[#00F5D4] uppercase tracking-widest',
+  kindOff: 'border-white/30 text-white/70 hover:text-white',
+  item: 'rounded-2xl border-2 border-max-quinary/40 bg-black/30 p-4',
+  empty: 'text-white/50',
+};
 </script>
 
 <template>
@@ -152,8 +167,11 @@ const {
           </div>
         </div>
 
+        <!-- 评价 / 建议：未开奖时位于抽奖下方；已开奖时位于结果上方 -->
+        <ReviewSection v-if="reviewOn" :period="period" :config="config" :submit-state="reviewState" :theme="reviewTheme" class="mt-12" @submit-review="doSubmitReview" />
+
         <!-- 开奖结果 -->
-        <div v-else-if="isDrawn && result" class="space-y-12">
+        <div v-if="isDrawn && result" class="mt-12 space-y-12">
           <div>
             <h2 class="text-center font-unbounded text-4xl font-extrabold uppercase max-text-shadow sm:text-5xl">🏆 中奖名单</h2>
             <div class="mt-8 grid gap-5 sm:grid-cols-2">
@@ -217,6 +235,9 @@ const {
           </div>
         </div>
       </section>
+
+      <!-- 评价 / 建议：抽奖模块本身关闭但评价开启时，单独成块 -->
+      <ReviewSection v-if="reviewOn && !lotteryOn" :period="period" :config="config" :submit-state="reviewState" :theme="reviewTheme" class="mb-16" @submit-review="doSubmitReview" />
 
       <!-- ③ 下午茶 -->
       <section v-if="teaOn" class="mb-16">

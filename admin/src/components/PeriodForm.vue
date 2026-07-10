@@ -16,7 +16,7 @@ const isNew = computed(() => !props.period?.id);
 
 function blank() {
   return {
-    title: '', style: 'style1', lotteryEnabled: true, teaEnabled: false,
+    title: '', style: 'style1', lotteryEnabled: true, teaEnabled: false, reviewEnabled: false,
     teaRatingHours: 24, billShow: 'inherit', prizes: [{ name: '', qty: 1, image: null }], products: [],
   };
 }
@@ -27,6 +27,7 @@ function loadFrom(p) {
   f.style = p.style || 'style1';
   f.lotteryEnabled = !!p.lotteryEnabled;
   f.teaEnabled = !!p.teaEnabled;
+  f.reviewEnabled = !!p.reviewEnabled;
   f.teaRatingHours = p.tea?.ratingHours || 24;
   f.billShow = p.billShow || 'inherit';
   // products: [{id, amount}]，amount=本期实际金额（默认套用商品预设价）
@@ -78,7 +79,7 @@ async function save() {
   saving.value = true;
   const payload = {
     title: f.title.trim(), style: f.style,
-    lotteryEnabled: f.lotteryEnabled, teaEnabled: f.teaEnabled,
+    lotteryEnabled: f.lotteryEnabled, teaEnabled: f.teaEnabled, reviewEnabled: f.reviewEnabled,
     teaRatingHours: Number(f.teaRatingHours) || 24,
     billShow: f.billShow,
     prizes: f.prizes.map((z) => ({ name: z.name.trim(), qty: Math.max(1, Math.floor(Number(z.qty)) || 1), image: z.image })),
@@ -116,6 +117,10 @@ async function save() {
       <label class="inline-flex items-center gap-2">
         <input v-model="f.teaEnabled" type="checkbox" class="h-4 w-4 rounded accent-indigo-600" />
         <span class="text-sm font-medium text-slate-700">开启下午茶评分</span>
+      </label>
+      <label class="inline-flex items-center gap-2">
+        <input v-model="f.reviewEnabled" type="checkbox" class="h-4 w-4 rounded accent-indigo-600" />
+        <span class="text-sm font-medium text-slate-700">开启评价 / 建议</span>
       </label>
     </div>
 
